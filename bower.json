@@ -1,0 +1,27 @@
+{
+  "name": "bookofyou",
+  "version": "0.0.0",
+  "main": "app.js",
+  "moduleType": [
+    "amd",
+    "node"
+  ],
+  "authors": [
+    "josh bowling"
+  ],
+  "license": "MIT",
+  "homepage": "code.joshuaebowling.info",
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "public/bower/",
+    "test",
+    "tests"
+  ],
+  "dependencies": {
+    "bootstrap": "~3.3.5",
+    "knockout": "~3.3.0",
+    "monologue.js": "~0.3.3"
+  }
+}

@@ -1,0 +1,16 @@
+div(data-bind='visible: !showMe()')
+	div(class='form-inline')
+		div(class='form-group')
+			label(for='bookTitle', class='sr-only') Title:
+			div(class='input-group')
+				div(class='input-group-addon') Title
+				input(id='bookTitle',type='text', data-bind='textInput: bookTitle', placeholder='Enter Title', class='form-control')
+			button(type='button', data-bind='click: createBook, enable: createEnabled', class='btn btn-primary') Create
+div(data-bind='visible: showMe()')
+	div(class='page-header')
+		h1(data-bind='text: bookTitle', class='heading')
+			small(data-bind='text: subHeading')
+	div(class='btn-toolbar', role='toolbar')
+		div(class='btn-group')
+			button(type='button', class='btn btn-default', data-bind='click: createChapter') Add Chapter
+		div(data-bind="component: { name:'chapters-navigator', params: {chapters: chapters, context: $parent}}", class='btn-group')

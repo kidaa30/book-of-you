@@ -1,0 +1,3 @@
+div(data-bind='if: navigateChapters')
+	div(data-bind='foreach: navigateChapters', class='btn-group', role='group', aria-label='chapters')
+		button(data-bind='value: num, text: num, click: $parent.setSelectedChapter', type='button', class='btn btn-primary') Chapter
