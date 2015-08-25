@@ -8,3 +8,4 @@
 4. gulp templates bundle (do this whenever you edit the jade/templates OR public/javascripts files -- yeah I need some devops lol)
 5. npm start
 
+
