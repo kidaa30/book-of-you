@@ -1,7 +1,13 @@
+
+/**
+ * @fileOverview displays an individual verse
+ * @author Josh Bowling
+ * @version 0.0.1
+ */
+
 var ko;
 
 ko = require('../../bower/knockout/dist/knockout.js');
-
 ko.components.register('verse', {
 	viewModel: function(params) {
 		var self;

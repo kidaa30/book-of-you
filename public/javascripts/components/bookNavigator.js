@@ -1,15 +1,23 @@
+/**
+ * @fileOverview navigation for creating book, containing chapter navigation
+ * @author Josh Bowling
+ * @version 0.0.1
+ */
+
+
 var ko;
 
 ko = require('../../bower/knockout/dist/knockout.js');
 
 ko.components.register('book-navigator', {
 	viewModel: function(params) {
-		var self, bookCreator, _subscriptions, _onNameSet;
+		var self, _subscriptions;
+
 		self = this;
-		self.chapterNavigator = {};
-		bookWorker = params.bookWorker();
-		self.bookWorker = bookWorker.retrieve();
+		self.bookWorker = require('../observers/Book.js')().retrieve();
+
 		// data declarations
+		self.chapterNavigator = {};
 		self.showMe = ko.observable(false);
 		self.bookTitle = ko.observable('');
 		self.hasBook = ko.pureComputed(function() {
@@ -19,15 +27,29 @@ ko.components.register('book-navigator', {
 		self.chapters = ko.pureComputed(function() {
 			// default result for initial pop
 			var result = [];
+
 			if(self.book() && self.book()['attributes']) {
 				result = self.book().attributes.chapters().toJSON();
 			}
+
 			return result;
 		});
 		self.subHeading = ko.pureComputed(function() {
 			return 'Chapter ' + bookWorker.retrieve().currentChapter();
 		});
-		// to hold subscription strings, handlers, subscription object, and data
+		self.createEnabled = ko.pureComputed(function() {
+			var result;
+
+			result = self.bookTitle() != '' && !self.hasBook();
+
+			return result;
+		});
+
+		// subscriptions
+		// experiment to hold subscription strings, handlers, subscription object, and data
+		/** 
+		* @todo resolve subscription containment issue
+		*/
 		_subscriptions = {
 			chapters: {
 				id: 'chapter.crud.#',
@@ -37,19 +59,20 @@ ko.components.register('book-navigator', {
 				data:null
 			}
 		};
+		/**
+		 a one time subscription at present
+		 * @todo if book name changes are added, then then will need to  remove unsubscribe()
+		*/
 		self.onNameSet = self.bookWorker.subscriber('book.name.set', function(data, env) {
-			_onNameSet(data, env);
+			self.showMe(true);
+			self.onNameSet.unsubscribe();
 		});
 
-		//computed values
-		self.createEnabled = ko.pureComputed(function() {
-			var result;
-			result = self.bookTitle() != '' && !self.hasBook();
-			return result;
-		});
 		// behaviors
 		self.createBook = function(name) {
-			var createSubscription = bookWorker.on('book.name.set', function(data, env) {
+			var createSubscription;
+
+			createSubscription = bookWorker.on('book.name.set', function(data, env) {
 				createSubscription.unsubscribe();
 				self.book(data.context);
 				_subscriptions.chapters.subscription = 
@@ -59,20 +82,12 @@ ko.components.register('book-navigator', {
 		};
 		self.createChapter = function() {
 			var result;
+			
 			result = self.bookWorker.addChapter();
+			
 			return result;
 		};
-		// internal
-		_onNameSet = function(data, env) {
-			self.showMe(true);
-			self.onNameSet.unsubscribe();
-		};
 
-
-		//dispose
-		self.dispose = function() {
-			self.book.del();
-		};
 	},
 	template: { fromUrl: 'html/bookNavigator-1.html' }
 });

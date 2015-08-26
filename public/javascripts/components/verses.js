@@ -1,3 +1,9 @@
+/**
+ * @fileOverview displays all verses as verse components in chapter
+ * @author Josh Bowling
+ * @version 0.0.1
+ */
+
 var ko, _;
 
 ko = require('../../bower/knockout/dist/knockout.js');
@@ -6,17 +12,19 @@ _ = require('underscore');
 
 ko.components.register('verses', {
 	viewModel: function(params) {
-		var self, _verses, _onIncomingVerse, _onNameSet;
+		var self, _onIncomingVerse, _onNameSet;
 
 		self = this;
 		self.bookWorker = require('../observers/Book.js')().retrieve();
-		verses = [];
+
+		// data declarations
 		self.verses = ko.observableArray();
 		self.currentChapter = ko.observable(1);
 		self.chapterHeading = ko.computed(function() { 
 			return "Chapter " + self.currentChapter();
 		});
 		self.showMe = ko.observable(false);
+
 		// subscriptions
 		self.bookWorker.subscriber('chapters.chapter.set', function(data, env) {
 			data.context = data.result.get('verses');
@@ -33,6 +41,7 @@ ko.components.register('verses', {
 		// internal
 		_onIncomingVerse = function(data, env) {
 			var verseData;
+
 			verseData = data.context.toJSON();
 			self.verses(verseData);
 		};
@@ -40,7 +49,6 @@ ko.components.register('verses', {
 			self.showMe(true);
 			self.onNameSet.unsubscribe();
 		};
-		//external
 	},
 	template: { fromUrl: 'html/verses-1.html'}
 });

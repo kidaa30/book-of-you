@@ -1,9 +1,14 @@
-var ko;
+/**
+ * @fileOverview taken from knockout site for implementing ajax-loading functionality for templates
+ * @author Josh Bowling
+ * @version 0.0.1
+ */
+
+var ko, templateFromUrlLoader;
 
 ko = require('../../bower/knockout/dist/knockout.js');
 
-
-var templateFromUrlLoader = {
+templateFromUrlLoader = {
     loadTemplate: function(name, templateConfig, callback) {
         if (templateConfig.fromUrl) {
             // Uses jQuery's ajax facility to load the markup from a file
@@ -23,3 +28,5 @@ var templateFromUrlLoader = {
 
 // Register it
 ko.components.loaders.unshift(templateFromUrlLoader);
+
+module.exports = {};

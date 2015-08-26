@@ -1,29 +1,36 @@
+/**
+ * @fileOverview navigation for creating and selecting chapters
+ * @author Josh Bowling
+ * @version 0.0.1
+ */
+
+
 var ko;
 
 ko = require('../../bower/knockout/dist/knockout.js');
-
 ko.components.register('chapters-navigator', {
 	viewModel: { 
 		createViewModel: function(params) {
-			var self, _selectedChapter;
+			var self;
 			// will be used to push data to/fro computed value
-			_selectedChapter = 0;
 			self = this;
 			self.bookWorker = require('../observers/Book.js')().retrieve();
+
+			// data declarations
 			self.navigateChapters = ko.observableArray(self.bookWorker.attributes.chapters().toJSON());
+			self.selectedChapter = self.bookWorker.currentChapter;
+
+			// behaviors
+			self.setSelectedChapter = function(data) {
+				self.selectedChapter(data.num);
+			};
+
+			// subscriptions
 			self.bookWorker.subscriber('chapters.crud.create.done', function(data, env) {
-				console.log(arguments);
 				if(data.context) {
 					self.navigateChapters(data.context.toJSON());
 				}
 			});
-
-			// data declarations
-
-			self.selectedChapter = self.bookWorker.currentChapter;
-			self.setSelectedChapter = function(data) {
-				self.selectedChapter(data.num);
-			};
 
 			return self;
 		}
