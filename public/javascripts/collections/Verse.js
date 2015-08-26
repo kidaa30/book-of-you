@@ -1,3 +1,9 @@
+/**
+ * @fileOverview backbone verse collection
+ * @author Josh Bowling
+ * @version 0.0.1
+ */
+
 var Verse, backbone, _, VerseModel;
 
 _ = require('underscore');
@@ -16,7 +22,7 @@ Verse = backbone.Collection.extend({
 	},
 	addVerse: function(verseText) {
 		var self, verse;
-		console.log(verseText);
+
 		self = this;
 		verse = new self.model(self.models.length + 1, verseText);
  		self.add(verse);

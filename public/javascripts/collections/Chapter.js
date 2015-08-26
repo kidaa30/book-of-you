@@ -1,3 +1,9 @@
+/**
+ * @fileOverview Backbone chapter collection
+ * @author Josh Bowling
+ * @version 0.0.1
+ */
+
 var Chapter, _, backbone, ChapterModel;
 
 _ = require('underscore');
@@ -13,7 +19,6 @@ Chapter = backbone.Collection.extend({
 		
 		self = this;
 		_.bindAll(self, 'addChapter');
-
 	},
 	addChapter: function() {
 		var self, chapNum, chap;
