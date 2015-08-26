@@ -1,17 +1,25 @@
+/**
+ * @fileOverview backbone Book model -- contains the chapter collections as attribute
+ * @author Josh Bowling
+ * @version 0.0.1
+ */
+
 var backbone, Book, Chapters, _;
 
 _ = require('underscore');
-
 backbone = require('backbone');
 
 Chapters = require('../collections/Chapter');
-
 Book = backbone.Model.extend({
     defaults: {
         name:'new Book',
         chapters: new Chapters()
     },
-    initialize: function (name, chapters) {
+    /**
+    * @param {string} name
+    * @todo add chapters as array of chapters to fill the chapters collection
+    */
+    initialize: function (name) {
         var self;
 
         self = this;
