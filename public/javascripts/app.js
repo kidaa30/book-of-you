@@ -1,5 +1,5 @@
 ﻿/**
- * @fileOverview requires base components, 
+ * @fileOverview requires base components, and initializes application
  * @author Josh Bowling
  * @version 0.0.1
  */
