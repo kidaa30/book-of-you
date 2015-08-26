@@ -1,3 +1,10 @@
+/**
+ * @fileOverview Response object used when publishing data
+ * @author Josh Bowling
+ * @version 0.0.1
+ */
+
+
 var ResponseObject, httpWell, statusWell, phraseWell;
 
 httpWell = require('know-your-http-well');
