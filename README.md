@@ -18,7 +18,7 @@ I've used knockout, backbone, postal, angular, react (a bit) often in the last f
 Recently, I was reading about React.js's flux pattern and thought the author brought up some of these criticisms and suggested that flux pattern was the answer; thus I was interested in the the theory behind pattern, but not the framework. Frameworks are a double-edged sword indeed. However, connecting knockout to backbone using postal/monologue and browserify seemed very interesting and doable. I'm not sure how it turned out yet because what I have here is by NO means systematized, complete, useful. 
 Nevertheless, a number of questiony observations (in no particular order) came up as I developed this trifle:
 
-1.  The intermediary between knockout and backbone is what I've dubbed an observer (which I now sense is a misnomer). Nevertheless, it's within this observer (public/javascripts/observers/book.js) that I've tried to limit the use of knockout AND backbone in the same module.
+1. The intermediary between knockout and backbone is what I've dubbed an observer (which I now sense is a misnomer). Nevertheless, it's within this observer (public/javascripts/observers/book.js) that I've tried to limit the use of knockout AND backbone in the same module.
 
 2. As I coded the aforementioned observer, I found that knockout observables were useful to retain returnable/discrete values (like what the currently selected chapter is), and monologue's workers were good for requesting processes (like adding chapters, updating verse text, naming the book). 
 
