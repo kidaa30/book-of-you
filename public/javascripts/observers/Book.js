@@ -1,6 +1,6 @@
 /**
  * @fileOverview Observer, i.e. the monologue abstraction between the knockout view models and backbone models/colleccitons
- * @author <a href="mailto:joshuaebowling@gmail.com">Josh Bowling</a>
+ * @author Josh Bowling
  * @version 0.0.1
  */
 var BookModel, monologue, Worker, worker,_ ,Response, ko, Worker, util;
