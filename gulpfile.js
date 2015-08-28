@@ -1,8 +1,14 @@
-var gulp = require('gulp');
+var gulp, gulpKarma, testFiles;
+
+
+testFiles = [
+	'./public/tests/models/Verse.js'
+];
+gulp = require('gulp');
+gulpKarma = require('gulp-karma');
 
 gulp.task('bundle', function() {
   // place code for your default task here
-
 	var watchify = require('watchify');
 	var browserify = require('browserify');
 	var gulp = require('gulp');
@@ -61,3 +67,15 @@ gulp.task('templates', function() {
 
 });
 
+gulp.task('test', function() {
+    gulp.src(testFiles)
+    .pipe(gulpKarma({
+      configFile: './test.conf.js',
+      action: 'run'
+    }))
+    .on('error', function(err) {
+      // Make sure failed tests cause gulp to exit non-zero 
+      console.log(err);
+      throw err;
+    });	
+});
