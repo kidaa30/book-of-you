@@ -7,7 +7,7 @@ resultData = {
 	verses: []
 };
 
-describe('Verse Chapters Tests', function() {
+describe('Chapter Model Tests', function() {
 	beforeAll(function() {
 		var self;
 
