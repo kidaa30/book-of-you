@@ -8,6 +8,9 @@
 4. gulp templates bundle (do this whenever you edit the jade/templates OR public/javascripts files -- yeah I need some devops lol)
 5. npm start
 
+## To test
+gulp test
+
 ##Why?
 I've often thought that modern communication is reductive because because it occurs in fragments that are curated by machines ala facebook/twitter/etc. This process leads only to more trivial complexity that is measured in terms of commerce (commerce is awesome, after all it's how I pay my bills, too.) Hopefully, other people in the world (yes, perhaps you, too) feel the same way. If so, you and me,  you or me, or some other group of people altogether will create a serious medium for the application of spirit to digital society.
 
