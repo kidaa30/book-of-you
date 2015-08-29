@@ -15,7 +15,7 @@ monologue = require('monologue.js');
 
 Response = require('../utility/ResponseObject.js');
 
-BookModel = require('../models/Book');
+BookModel = require('../models/').Book;
 
 Worker = function(name) {
 	var self;

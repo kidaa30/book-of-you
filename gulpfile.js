@@ -2,7 +2,9 @@ var gulp, gulpKarma, testFiles;
 
 
 testFiles = [
-	'./public/tests/models/Verse.js'
+	'./public/tests/models/Verse.js',
+	'./public/tests/models/Chapter.js'
+
 ];
 gulp = require('gulp');
 gulpKarma = require('gulp-karma');

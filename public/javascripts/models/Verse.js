@@ -14,6 +14,7 @@ VerseModel = backbone.Model.extend({
 		num:0,
 		text:'new verse'
 	},
+	idAttribute:'num',
 	initialize: function(num, text) {
 		var self = this;
 		

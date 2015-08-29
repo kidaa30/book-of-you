@@ -10,6 +10,7 @@
 
 ## To test
 gulp test
+*Incidentally, the process of getting gulp, karma, & jasmine to run was not straightforward. Multiple dependencies don't seem to install properly. Will be looking into resolution after I cover my existing code w/ tests*
 
 ##Why?
 I've often thought that modern communication is reductive because because it occurs in fragments that are curated by machines ala facebook/twitter/etc. This process leads only to more trivial complexity that is measured in terms of commerce (commerce is awesome, after all it's how I pay my bills, too.) Hopefully, other people in the world (yes, perhaps you, too) feel the same way. If so, you and me,  you or me, or some other group of people altogether will create a serious medium for the application of spirit to digital society.

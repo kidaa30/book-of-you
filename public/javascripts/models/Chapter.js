@@ -19,16 +19,15 @@ ChapterModel = backbone.Model.extend({
 		var self;
 
 		self = this;
+		_.bindAll(self, 'addVerse');
 		/**
 		* @todo make num conditional if there's a collection bound to model because we could get chapter num by use of collecciton length 
 		*/
 		self.set('num', num);
+		self.set('verses', new VerseCollection());
+		self.get('verses').addVerses(verseCollection);
 		// conditionally set the verses value
-		if(_.isObject(verseCollection) && _.isFunction(verseCollection['add'])) {
-			self.set('verses', verseCollection);
-		} else {
-			self.set('verses', new VerseCollection());
-		}
+
 	},
 	addVerse: function(verseText) {
 		var self, verse;
