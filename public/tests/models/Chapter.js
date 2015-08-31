@@ -12,16 +12,16 @@ describe('Chapter Model Tests', function() {
 		var self;
 
 		self = this;
-		
 	});
+
 	beforeEach(function() {
 		var self, Verse;
 
 		self = this;
 		self.Chapter = require('../../javascripts/models/Chapter');
 		self.testDataAbstraction = testData;
-
 	});
+
 	it('Initialize a Verse, check values from constructor invocation, re-set, check again', function() {
 		var self, chapterIsFunction, chapter, verseLen, verses, findVerse;
 

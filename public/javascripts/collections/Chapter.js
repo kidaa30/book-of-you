@@ -10,7 +10,6 @@ _ = require('underscore');
 
 backbone = require('backbone');
 
-ChapterModel = require('../models/').Chapter;
 
 Chapter = backbone.Collection.extend({
 	model: ChapterModel,
@@ -32,3 +31,5 @@ Chapter = backbone.Collection.extend({
 });
 
 module.exports = Chapter;
+
+ChapterModel = require('../models/Chapter.js');

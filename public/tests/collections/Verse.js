@@ -1,13 +1,12 @@
 var testData, resultData, _;
 
-_ = require('underscore');
+testData = require('../data/Verse');
 
-testData = require('../data/Book');
 resultData = {
 	verses: []
 };
 
-describe('Book Model Tests', function() {
+describe('Verse Collection Tests', function() {
 	beforeAll(function() {
 		var self;
 
@@ -18,7 +17,7 @@ describe('Book Model Tests', function() {
 		var self, Verse;
 
 		self = this;
-		self.Book = require('../../javascripts/models/Book');
+		self.Verses = require('../../javascripts/collections/Verse');
 		self.testDataAbstraction = testData;
 
 	});
@@ -26,9 +25,7 @@ describe('Book Model Tests', function() {
 		var self, book;
 
 		self = this;
-		expect(typeof self.Book).toBe('function');
-//		book = new self.Book(self.testDataAbstraction.name);
-//		console.log(book);
+		expect(typeof self.Verses).toBe('function');
 	});
 
 	// tear it down

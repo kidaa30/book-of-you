@@ -10,6 +10,7 @@ _ = require('underscore');
 backbone = require('backbone');
 
 VerseCollection = require('../collections/Verse');
+
 ChapterModel = backbone.Model.extend({
 	defaults: {
 		num:0,
