@@ -1,6 +1,6 @@
 var testData, resultData, _;
 
-testData = require('../data/Verse');
+testData = require('../data/Verse.js');
 
 resultData = {
 	verses: []

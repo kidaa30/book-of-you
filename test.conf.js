@@ -27,7 +27,9 @@ module.exports = function(config) {
     // preprocess matching files before serving them to the browser
     // available preprocessors: https://npmjs.org/browse/keyword/karma-preprocessor
     preprocessors: {
-      'public/tests/models/*.js':'browserify'
+      'public/tests/models/*.js':'browserify',
+      'public/tests/data/*.js':'browserify',
+      'public/tests/collections/*.js':'browserify'
     },
 
 
