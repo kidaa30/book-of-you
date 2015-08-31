@@ -40,7 +40,7 @@
     "jasmine": "^2.3.2",
     "jasmine-core": "^2.3.4",
     "karma": "^0.13.9",
-    "karma-browserify": "^4.3.0",
+    "karma-browserify": "https://github.com/voidlock/karma-browserify/tarball/use-browserify-hash-function",
     "karma-jasmine": "^0.3.6",
     "karma-phantomjs-launcher": "^0.2.1",
     "lodash.assign": "^3.2.0",
