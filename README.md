@@ -1,6 +1,8 @@
 ﻿# bookofyou
 ## An experiment in knockout.js, monologue.js, and backbone.js
 
+## To see in what little action there presently is [here](http://bookofyou.joshuaebowling.info)
+
 ## Getting started:
 1. Get Repo
 2. npm install
