@@ -4,6 +4,7 @@ var gulp, gulpKarma, testFiles;
 testFiles = [
 	'./public/tests/models/Verse.js',
 	'./public/tests/models/Chapter.js',
+	'./public/tests/collections/Chapter.js',
 	'./public/tests/models/Book.js',
 	'./public/tests/collections/Verse.js',
 

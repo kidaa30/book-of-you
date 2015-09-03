@@ -4,12 +4,13 @@
  * @version 0.0.1
  */
 
-var Chapter, _, backbone, ChapterModel;
+var Chapter, _, backbone, ChapterModel, VerseCollection;
 
 _ = require('underscore');
 
 backbone = require('backbone');
 
+ChapterModel = require('../models/Chapter.js');
 
 Chapter = backbone.Collection.extend({
 	model: ChapterModel,
@@ -31,5 +32,3 @@ Chapter = backbone.Collection.extend({
 });
 
 module.exports = Chapter;
-
-ChapterModel = require('../models/Chapter.js');
