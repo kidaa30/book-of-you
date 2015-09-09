@@ -29,7 +29,8 @@ module.exports = function(config) {
     preprocessors: {
       'public/tests/models/*.js':'browserify',
       'public/tests/data/*.js':'browserify',
-      'public/tests/collections/*.js':'browserify'
+      'public/tests/collections/*.js':'browserify',
+      'public/tests/observers/*.js':'browserify'
     },
 
 

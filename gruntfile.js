@@ -6,7 +6,7 @@ module.exports = function(grunt) {
 		pkg: grunt.file.readJSON('package.json'),
 		browserify: {
 			specs: {
-				src: ["./public/tests/models/*.js", "./public/tests/collections/*.js"],
+				src: ["./public/tests/models/*.js", "./public/tests/collections/*.js", "./public/tests/observers/*.js"],
 				dest: "./public/test/specs.js",
 				options: {
 					browserifyOptions: {
