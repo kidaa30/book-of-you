@@ -1,12 +1,19 @@
-var should, _;
+var ChapterCollection, ChapterModel, Response, should, _;
 
 should = require('should');
 
 _ = require('underscore');
 
+Response = require('../../javascripts/utility/ResponseObject');
+
+ChapterCollection = require('../../javascripts/collections/Chapter');
+
+ChapterModel = require('../../javascripts/models/Chapter');
+
 describe('Test The Book Observer', function() {
 	it('create the book observer', function() {
 		var BookObserver, bookObserver;
+
 		BookObserver = require('../../javascripts/observers/Book');
 		BookObserver.should.be.okay;
 		BookObserver.should.be.a.Function;
@@ -43,30 +50,35 @@ describe('Test The Book Observer', function() {
 		worker.currentChapter.should.be.a.Function();
 	});
 	it('test subscriber/publisher', function(done) {
-		var BookObserver, bookObserver, pubSub, worker;
+		var BookObserver, bookObserver, pubSub, subscription, worker;
 
 		BookObserver = require('../../javascripts/observers/Book');
 		bookObserver = BookObserver();
 		pubSub = bookObserver.create();
 		worker = pubSub.workerFunctions;
-		var subcription = worker.subscriber('test', function(data, env) {
+		subcription = worker.subscriber('test', function(data, env) {
 			data.should.be.okay;
 			data.should.be.an.Object;
 			data.should.have.property('test1', 1);
 			data.should.have.property('test2', 2);
 			done();
+			subcription.unsubscribe();
 		});
 		worker.publisher('test', {'test1':1, 'test2':2});
 	});
-	it('test addChapter', function() {
-		var BookObserver, bookObserver, pubSub, worker;
+	it('test addChapter', function(done) {
+		var BookObserver, bookObserver, pubSub, subscription, worker;
 		BookObserver = require('../../javascripts/observers/Book');
 		bookObserver = BookObserver();
-		bookObserver.should.have.property('create');
 		pubSub = bookObserver.create();
-		pubSub.should.be.okay;
-		pubSub.should.be.an.Object;
-		pubSub.should.have.property('workerFunctions');
 		worker = pubSub.workerFunctions;
+		var subscription = worker.subscriber('chapters.crud.create.done', function(data, env) {
+			data.should.be.okay;
+			data.should.be.an.Object;
+			data.should.be.an.instanceOf(Response);
+			data.result.should.be.an.instanceOf(ChapterModel);
+			done();
+		});
+		worker.addChapter();
 	});
 });
