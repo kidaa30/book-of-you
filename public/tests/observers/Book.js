@@ -1,4 +1,4 @@
-var ChapterCollection, ChapterModel, Response, should, _;
+var backbone, ChapterCollection, ChapterModel, Response, should, _;
 
 should = require('should');
 
@@ -9,6 +9,8 @@ Response = require('../../javascripts/utility/ResponseObject');
 ChapterCollection = require('../../javascripts/collections/Chapter');
 
 ChapterModel = require('../../javascripts/models/Chapter');
+
+backbone = require('backbone');
 
 describe('Test The Book Observer', function() {
 	it('create the book observer', function() {
@@ -72,7 +74,7 @@ describe('Test The Book Observer', function() {
 		bookObserver = BookObserver();
 		pubSub = bookObserver.create();
 		worker = pubSub.workerFunctions;
-		var subscription = worker.subscriber('chapters.crud.create.done', function(data, env) {
+		subscription = worker.subscriber('book.chapters.crud.create.done', function(data, env) {
 			data.should.be.okay;
 			data.should.be.an.Object;
 			data.should.be.an.instanceOf(Response);
@@ -81,4 +83,168 @@ describe('Test The Book Observer', function() {
 		});
 		worker.addChapter();
 	});
+	it('test setCurrentChapter', function(done) {
+		var BookObserver, bookObserver, pubSub, subscription, worker;
+		BookObserver = require('../../javascripts/observers/Book');
+		bookObserver = BookObserver();
+		pubSub = bookObserver.create();
+		worker = pubSub.workerFunctions;
+		subscription = worker.subscriber('book.chapters.chapter.set', function(data, env) {
+			data.should.be.instanceOf(Response);
+			data.result.should.be.instanceOf(backbone.Model);
+			data.context.should.be.instanceOf(backbone.Collection);
+			done();
+		});
+		worker.setCurrentChapter(1);
+	});
+
+	it('test setName', function(done) {
+		var BookObserver, bookObserver, pubSub, subscription, worker;
+		BookObserver = require('../../javascripts/observers/Book');
+		bookObserver = BookObserver();
+		pubSub = bookObserver.create();
+		worker = pubSub.workerFunctions;
+		subscription = worker.subscriber('book.name.set', function(data, env) {
+			data.should.be.instanceOf(Response);
+			data.result.should.be.instanceOf.String;
+			data.result.should.eql('testbookname');
+			data.context.should.be.instanceOf(backbone.Model);
+			done();
+		});
+
+		worker.setName('testbookname');
+
+	});
+
+/** Integrity Tests **/
+/** integrity -- setCurrentChapter **/
+	it('integrity -- test setCurrentChapter w/ a number that isn\'t in the collection', function(done) {
+		var BookObserver, bookObserver, pubSub, subscription, worker;
+		BookObserver = require('../../javascripts/observers/Book');
+		bookObserver = BookObserver();
+		pubSub = bookObserver.create();
+		worker = pubSub.workerFunctions;
+		subscription = worker.subscriber('book.chapters.chapter.set.error', function(data, env) {
+			data.should.be.instanceOf(Response);
+			should(data.result, null);
+			should(data.context, null);
+			data.code.status.should.eql(404);
+			done();
+		});
+
+		worker.setCurrentChapter(13);
+	});
+
+	it('integrity -- test setCurrentChapter w/ a  null value', function(done) {
+		var BookObserver, bookObserver, pubSub, subscription, worker;
+		BookObserver = require('../../javascripts/observers/Book');
+		bookObserver = BookObserver();
+		pubSub = bookObserver.create();
+		worker = pubSub.workerFunctions;
+		subscription = worker.subscriber('book.chapters.chapter.set.error', function(data, env) {
+			data.should.be.instanceOf(Response);
+			should(data.result, null);
+			should(data.context, null);
+			data.code.status.should.eql(404);
+			done();
+		});
+
+		worker.setCurrentChapter(null);
+	});
+
+	it('integrity -- test setCurrentChapter w/ a  string value', function(done) {
+		var BookObserver, bookObserver, pubSub, subscription, worker;
+		BookObserver = require('../../javascripts/observers/Book');
+		bookObserver = BookObserver();
+		pubSub = bookObserver.create();
+		worker = pubSub.workerFunctions;
+		subscription = worker.subscriber('book.chapters.chapter.set.error', function(data, env) {
+			data.should.be.instanceOf(Response);
+			should(data.result, null);
+			should(data.context, null);
+			data.code.status.should.eql(404);
+			done();
+		});
+
+		worker.setCurrentChapter('test');
+	});
+/** end integrity -- setCurrentChapter
+
+/** integrity -- setName **/
+
+	it('integrity -- test setName w/ null value', function(done) {
+		var BookObserver, bookObserver, pubSub, subscription, worker;
+		BookObserver = require('../../javascripts/observers/Book');
+		bookObserver = BookObserver();
+		pubSub = bookObserver.create();
+		worker = pubSub.workerFunctions;
+		subscription = worker.subscriber('book.name.set.error', function(data, env) {
+			data.should.be.instanceOf(Response);
+			should(data.result, null);
+			should(data.context, null);
+			data.code.status.should.eql(500);
+			done();
+		});
+
+		worker.setName(null);
+
+	});
+
+	it('integrity -- test setName w/ number value', function(done) {
+		var BookObserver, bookObserver, pubSub, subscription, worker;
+		BookObserver = require('../../javascripts/observers/Book');
+		bookObserver = BookObserver();
+		pubSub = bookObserver.create();
+		worker = pubSub.workerFunctions;
+		subscription = worker.subscriber('book.name.set.error', function(data, env) {
+			data.should.be.instanceOf(Response);
+			should(data.result, null);
+			should(data.context, null);
+			data.code.status.should.eql(500);
+			done();
+		});
+
+		worker.setName(32);
+
+	});
+
+	it('integrity -- test setName w/ function', function(done) {
+		var BookObserver, bookObserver, pubSub, subscription, worker;
+		BookObserver = require('../../javascripts/observers/Book');
+		bookObserver = BookObserver();
+		pubSub = bookObserver.create();
+		worker = pubSub.workerFunctions;
+		subscription = worker.subscriber('book.name.set.error', function(data, env) {
+			data.should.be.instanceOf(Response);
+			should(data.result, null);
+			should(data.context, null);
+			data.code.status.should.eql(500);
+			done();
+		});
+
+		worker.setName(function() {});
+
+	});
+
+	it('integrity -- test setName w/ object', function(done) {
+		var BookObserver, bookObserver, pubSub, subscription, worker;
+		BookObserver = require('../../javascripts/observers/Book');
+		bookObserver = BookObserver();
+		pubSub = bookObserver.create();
+		worker = pubSub.workerFunctions;
+		subscription = worker.subscriber('book.name.set.error', function(data, env) {
+			data.should.be.instanceOf(Response);
+			should(data.result, null);
+			should(data.context, null);
+			data.code.status.should.eql(500);
+			done();
+		});
+
+		worker.setName({});
+
+	});
+
+
+/** end integrity -- setName **/
+
 });

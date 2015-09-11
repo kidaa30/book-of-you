@@ -78,7 +78,7 @@ Worker.prototype.create = function(name) {
 			chapters = book.get('chapters');
 			newChapter = new chapters.model(chapters.models.length + 1);
 			chapters.add(newChapter);
-			self.emit('chapters.crud.create.done', new Response(newChapter, 200, book.get('chapters')));
+			self.emit('book.chapters.crud.create.done', new Response(newChapter, 200, book.get('chapters')));
 
 			return newChapter;
 		},
@@ -91,16 +91,21 @@ Worker.prototype.create = function(name) {
 			}
 
 			chapter = book.get('chapters').findWhere({num: num});
+			if(!chapter) {
+				console.log('error');
+				return self.emit('book.chapters.chapter.set.error', new Response(null, 404, null));				
+			}
+
 			chapters = book.get('chapters');
 			workerFunctions.currentChapter(num);
-			self.emit('chapters.chapter.set', new Response(chapter, 200, chapters));
+			self.emit('book.chapters.chapter.set', new Response(chapter, 200, chapters));
 		},
 		/** Set the book's name
 		* @param {string} name
 		*/
 		setName: function(name) {
 			if(!name || !_.isString(name)) {
-				return self.emit('book.name.set.error', new Response(null, 404, null));
+				return self.emit('book.name.set.error', new Response(null, 500, null));
 			}
 
 			book.set('name', name);
@@ -114,13 +119,13 @@ Worker.prototype.create = function(name) {
 
 			chapter = self.workerFunctions.currentChapterObject();
 			if(!chapter) {
-				return self.emit('chapters.chapter.verse.crud.create.error', new Response(null, 404, null));
+				return self.emit('book.chapters.chapter.verse.crud.create.error', new Response(null, 404, null));
 			}
 
 			verses = chapter.get('verses');
 
 			if(!_.isString(verseText) || verseText === '') {
-				return self.emit('chapters.chapter.verse.crud.create.error.noVerse', new Response(null, 404, null));
+				return self.emit('book.chapters.chapter.verse.crud.create.error.noVerse', new Response(null, 404, null));
 			}
 
 			verse = chapter.addVerse(verseText);
