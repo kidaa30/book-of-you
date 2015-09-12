@@ -119,13 +119,13 @@ Worker.prototype.create = function(name) {
 
 			chapter = self.workerFunctions.currentChapterObject();
 			if(!chapter) {
-				return self.emit('book.chapters.chapter.verse.crud.create.error', new Response(null, 404, null));
+				return self.emit('book.chapters.chapter.verse.crud.create.error', new Response(null, 500, null));
 			}
 
 			verses = chapter.get('verses');
 
 			if(!_.isString(verseText) || verseText === '') {
-				return self.emit('book.chapters.chapter.verse.crud.create.error.noVerse', new Response(null, 404, null));
+				return self.emit('book.chapters.chapter.verse.crud.create.error.noVerse', new Response(null, 400, null));
 			}
 
 			verse = chapter.addVerse(verseText);
