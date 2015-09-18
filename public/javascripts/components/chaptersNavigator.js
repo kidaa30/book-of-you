@@ -5,9 +5,11 @@
  */
 
 
-var ko;
+var ko, subscriptions;
 
 ko = require('../../bower/knockout/dist/knockout.js');
+subscriptions = require('../collections/subscriptions');
+
 ko.components.register('chapters-navigator', {
 	viewModel: { 
 		createViewModel: function(params) {
@@ -26,7 +28,7 @@ ko.components.register('chapters-navigator', {
 			};
 
 			// subscriptions
-			self.bookWorker.subscriber('chapters.crud.create.done', function(data, env) {
+			self.bookWorker.subscriber(subscriptions.book.chapters.crud.create.done, function(data, env) {
 				if(data.context) {
 					self.navigateChapters(data.context.toJSON());
 				}

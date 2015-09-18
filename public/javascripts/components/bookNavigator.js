@@ -5,13 +5,14 @@
  */
 
 
-var ko;
+var ko, subscriptions;
 
 ko = require('../../bower/knockout/dist/knockout.js');
+subscriptions = require('../collections/subscriptions');
 
 ko.components.register('book-navigator', {
 	viewModel: function(params) {
-		var self, _subscriptions;
+		var self;
 
 		self = this;
 		self.bookWorker = require('../observers/Book.js')().retrieve();
@@ -46,24 +47,11 @@ ko.components.register('book-navigator', {
 		});
 
 		// subscriptions
-		// experiment to hold subscription strings, handlers, subscription object, and data
-		/** 
-		* @todo resolve subscription containment issue
-		*/
-		_subscriptions = {
-			chapters: {
-				id: 'chapter.crud.#',
-				handler: function(data, env) {
-				},
-				subscription: null,
-				data:null
-			}
-		};
 		/**
 		 a one time subscription at present
 		 * @todo if book name changes are added, then then will need to  remove unsubscribe()
 		*/
-		self.onNameSet = self.bookWorker.subscriber('book.name.set', function(data, env) {
+		self.onNameSet = self.bookWorker.subscriber(subscriptions.book.name.set, function(data, env) {
 			self.showMe(true);
 			self.onNameSet.unsubscribe();
 		});
@@ -72,11 +60,10 @@ ko.components.register('book-navigator', {
 		self.createBook = function(name) {
 			var createSubscription;
 
-			createSubscription = bookWorker.on('book.name.set', function(data, env) {
-				createSubscription.unsubscribe();
+			createSubscription = bookWorker.on(subscriptions.book.name.set, function(data, env) {
+				var chapterSubscription;
 				self.book(data.context);
-				_subscriptions.chapters.subscription = 
-					self.bookWorker.subscriber(_subscriptions.chapters.id, _subscriptions.chapters.handler);
+				createSubscription.unsubscribe();
 			});
 			self.bookWorker.setName(self.bookTitle());
 		};

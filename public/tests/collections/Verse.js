@@ -22,7 +22,7 @@ describe('Verse Collection Tests', function() {
 
 	});
 	it('Initialize a Verse, check values from constructor invocation, re-set, check again', function() {
-		var self, book;
+		var self;
 
 		self = this;
 		expect(typeof self.Verses).toBe('function');

@@ -1,16 +1,13 @@
-var backbone, ChapterCollection, ChapterModel, Response, should, _;
+var backbone, ChapterCollection, ChapterModel, Response, should,  subscriptions, _;
 
 should = require('should');
-
+backbone = require('backbone');
 _ = require('underscore');
 
 Response = require('../../javascripts/utility/ResponseObject');
-
 ChapterCollection = require('../../javascripts/collections/Chapter');
-
 ChapterModel = require('../../javascripts/models/Chapter');
-
-backbone = require('backbone');
+subscriptions = require('../../javascripts/collections/subscriptions');
 
 describe('Test The Book Observer', function() {
 	it('create the book observer', function() {
@@ -74,7 +71,7 @@ describe('Test The Book Observer', function() {
 		bookObserver = BookObserver();
 		pubSub = bookObserver.create();
 		worker = pubSub.workerFunctions;
-		subscription = worker.subscriber('book.chapters.crud.create.done', function(data, env) {
+		subscription = worker.subscriber(subscriptions.book.chapters.crud.create.done, function(data, env) {
 			data.should.be.okay;
 			data.should.be.an.Object;
 			data.should.be.an.instanceOf(Response);
@@ -89,7 +86,7 @@ describe('Test The Book Observer', function() {
 		bookObserver = BookObserver();
 		pubSub = bookObserver.create();
 		worker = pubSub.workerFunctions;
-		subscription = worker.subscriber('book.chapters.chapter.set', function(data, env) {
+		subscription = worker.subscriber(subscriptions.book.chapters.chapter.set, function(data, env) {
 			data.should.be.instanceOf(Response);
 			data.result.should.be.instanceOf(backbone.Model);
 			data.context.should.be.instanceOf(backbone.Collection);
@@ -104,7 +101,7 @@ describe('Test The Book Observer', function() {
 		bookObserver = BookObserver();
 		pubSub = bookObserver.create();
 		worker = pubSub.workerFunctions;
-		subscription = worker.subscriber('book.name.set', function(data, env) {
+		subscription = worker.subscriber(subscriptions.book.name.set, function(data, env) {
 			data.should.be.instanceOf(Response);
 			data.result.should.be.instanceOf.String;
 			data.result.should.eql('testbookname');
@@ -122,7 +119,7 @@ describe('Test The Book Observer', function() {
 		bookObserver = BookObserver();
 		pubSub = bookObserver.create();
 		worker = pubSub.workerFunctions;
-		subscription = worker.subscriber('chapters.chapter.verse.crud.create.done', function(data, env) {
+		subscription = worker.subscriber(subscriptions.book.chapters.chapter.verses.verse.crud.create.done, function(data, env) {
 			data.should.be.instanceOf(Response);
 			data.result.should.be.instanceOf.String;
 			data.result.get('text').should.eql('testaddverse');
@@ -143,7 +140,7 @@ describe('Test The Book Observer', function() {
 		bookObserver = BookObserver();
 		pubSub = bookObserver.create();
 		worker = pubSub.workerFunctions;
-		subscription = worker.subscriber('book.chapters.chapter.set.error', function(data, env) {
+		subscription = worker.subscriber(subscriptions.book.chapters.chapter.setError, function(data, env) {
 			data.should.be.instanceOf(Response);
 			should(data.result, null);
 			should(data.context, null);
@@ -160,7 +157,7 @@ describe('Test The Book Observer', function() {
 		bookObserver = BookObserver();
 		pubSub = bookObserver.create();
 		worker = pubSub.workerFunctions;
-		subscription = worker.subscriber('book.chapters.chapter.set.error', function(data, env) {
+		subscription = worker.subscriber(subscriptions.book.chapters.chapter.setError, function(data, env) {
 			data.should.be.instanceOf(Response);
 			should(data.result, null);
 			should(data.context, null);
@@ -177,7 +174,7 @@ describe('Test The Book Observer', function() {
 		bookObserver = BookObserver();
 		pubSub = bookObserver.create();
 		worker = pubSub.workerFunctions;
-		subscription = worker.subscriber('book.chapters.chapter.set.error', function(data, env) {
+		subscription = worker.subscriber(subscriptions.book.chapters.chapter.setError, function(data, env) {
 			data.should.be.instanceOf(Response);
 			should(data.result, null);
 			should(data.context, null);
@@ -197,7 +194,7 @@ describe('Test The Book Observer', function() {
 		bookObserver = BookObserver();
 		pubSub = bookObserver.create();
 		worker = pubSub.workerFunctions;
-		subscription = worker.subscriber('book.name.set.error', function(data, env) {
+		subscription = worker.subscriber(subscriptions.book.name.setError, function(data, env) {
 			data.should.be.instanceOf(Response);
 			should(data.result, null);
 			should(data.context, null);
@@ -215,7 +212,7 @@ describe('Test The Book Observer', function() {
 		bookObserver = BookObserver();
 		pubSub = bookObserver.create();
 		worker = pubSub.workerFunctions;
-		subscription = worker.subscriber('book.name.set.error', function(data, env) {
+		subscription = worker.subscriber(subscriptions.book.name.setError, function(data, env) {
 			data.should.be.instanceOf(Response);
 			should(data.result, null);
 			should(data.context, null);
@@ -233,7 +230,7 @@ describe('Test The Book Observer', function() {
 		bookObserver = BookObserver();
 		pubSub = bookObserver.create();
 		worker = pubSub.workerFunctions;
-		subscription = worker.subscriber('book.name.set.error', function(data, env) {
+		subscription = worker.subscriber(subscriptions.book.name.setError, function(data, env) {
 			data.should.be.instanceOf(Response);
 			should(data.result, null);
 			should(data.context, null);
@@ -251,7 +248,7 @@ describe('Test The Book Observer', function() {
 		bookObserver = BookObserver();
 		pubSub = bookObserver.create();
 		worker = pubSub.workerFunctions;
-		subscription = worker.subscriber('book.name.set.error', function(data, env) {
+		subscription = worker.subscriber(subscriptions.book.name.setError, function(data, env) {
 			data.should.be.instanceOf(Response);
 			should(data.result, null);
 			should(data.context, null);
@@ -291,7 +288,8 @@ describe('Test The Book Observer', function() {
 		bookObserver = BookObserver();
 		pubSub = bookObserver.create();
 		worker = pubSub.workerFunctions;
-		subscription = worker.subscriber('book.chapters.chapter.verse.crud.create.error.noVerse', function(data, env) {
+		console.log('name?>?>>>', subscriptions.book.chapters.chapter.verses.verse.crud.create.errorNoVerse);
+		subscription = worker.subscriber(subscriptions.book.chapters.chapter.verses.verse.crud.create.errorNoVerse, function(data, env) {
 			data.should.be.instanceOf(Response);
 			should(data.result, null);
 			data.code.status.should.eql(400);
@@ -309,7 +307,7 @@ describe('Test The Book Observer', function() {
 		bookObserver = BookObserver();
 		pubSub = bookObserver.create();
 		worker = pubSub.workerFunctions;
-		subscription = worker.subscriber('book.chapters.chapter.verse.crud.create.error.noVerse', function(data, env) {
+		subscription = worker.subscriber(subscriptions.book.chapters.chapter.verses.verse.crud.create.errorNoVerse, function(data, env) {
 			data.should.be.instanceOf(Response);
 			should(data.result, null);
 			data.code.status.should.eql(400);
@@ -327,7 +325,7 @@ describe('Test The Book Observer', function() {
 		bookObserver = BookObserver();
 		pubSub = bookObserver.create();
 		worker = pubSub.workerFunctions;
-		subscription = worker.subscriber('book.chapters.chapter.verse.crud.create.error.noVerse', function(data, env) {
+		subscription = worker.subscriber(subscriptions.book.chapters.chapter.verses.verse.crud.create.errorNoVerse, function(data, env) {
 			data.should.be.instanceOf(Response);
 			should(data.result, null);
 			data.code.status.should.eql(400);
@@ -345,7 +343,7 @@ describe('Test The Book Observer', function() {
 		bookObserver = BookObserver();
 		pubSub = bookObserver.create();
 		worker = pubSub.workerFunctions;
-		subscription = worker.subscriber('book.chapters.chapter.verse.crud.create.error.noVerse', function(data, env) {
+		subscription = worker.subscriber(subscriptions.book.chapters.chapter.verses.verse.crud.create.errorNoVerse, function(data, env) {
 			data.should.be.instanceOf(Response);
 			should(data.result, null);
 			data.code.status.should.eql(400);

@@ -3,7 +3,7 @@
  * @author Josh Bowling
  * @version 0.0.1
  */
-var BookModel, monologue, Worker, worker,_ ,Response, ko, Worker, util;
+var BookModel, monologue,_ , ko, Response, subscriptions, Worker, worker, util;
 
 util = require('util');
 
@@ -14,8 +14,8 @@ ko = require('../../bower/knockout/dist/knockout.debug.js');
 monologue = require('monologue.js');
 
 Response = require('../utility/ResponseObject.js');
-
 BookModel = require('../models/Book');
+subscriptions = require('../collections/subscriptions');
 
 Worker = function(name) {
 	var self;
@@ -27,7 +27,7 @@ Worker.prototype = monologue.prototype;
 
 
 Worker.prototype.create = function(name) {
-	var self, book, workerFunctions, WorkerPropertyObservables;
+	var self, book, workerFunctions, workerPropertyObservables;
 
 	self = this;
 	// this the backbone model that contains the name, chapters, verses
@@ -37,7 +37,7 @@ Worker.prototype.create = function(name) {
 	* @todo pull keys value from the model. model attributes is pulling back more than name/chapters at present
 	* @todo investigate where this code is actually being used
 */
-	WorkerPropertyObservables = function() {
+	workerPropertyObservables = function() {
 		// assumes model/self since its operating in same context
 		var keys, workerProperties, currentKey;
 		/* pull this info from model attributes
@@ -56,7 +56,7 @@ Worker.prototype.create = function(name) {
 						var result;
 						// will use to verify validation, etc
 						result = true;
-						model.set(key);
+						model.set(key, val);
 						return result;
 					}
 				}
@@ -70,7 +70,7 @@ Worker.prototype.create = function(name) {
 	workerFunctions = {
 		/* currently not implemented */
 		delete: function() {
-			self.emit('crud.delete.done', new Response(null, 200, null));
+			self.emit(subscriptions.book.crud.delete.done, new Response(null, 200, null));
 		},
 		addChapter: function() {
 			var chapters, newChapter;
@@ -78,7 +78,7 @@ Worker.prototype.create = function(name) {
 			chapters = book.get('chapters');
 			newChapter = new chapters.model(chapters.models.length + 1);
 			chapters.add(newChapter);
-			self.emit('book.chapters.crud.create.done', new Response(newChapter, 200, book.get('chapters')));
+			self.emit(subscriptions.book.chapters.crud.create.done, new Response(newChapter, 200, book.get('chapters')));
 
 			return newChapter;
 		},
@@ -87,29 +87,29 @@ Worker.prototype.create = function(name) {
 
 			// Check to see if chapter exists also
 			if(!num || !_.isNumber(num)) {
-				return self.emit('book.chapters.chapter.set.error', new Response(null, 404, null));
+				return self.emit(subscriptions.book.chapters.chapter.setError, new Response(null, 404, null));
 			}
 
 			chapter = book.get('chapters').findWhere({num: num});
 			if(!chapter) {
 				console.log('error');
-				return self.emit('book.chapters.chapter.set.error', new Response(null, 404, null));				
+				return self.emit(subscriptions.book.chapters.chapter.setError, new Response(null, 404, null));				
 			}
 
 			chapters = book.get('chapters');
 			workerFunctions.currentChapter(num);
-			self.emit('book.chapters.chapter.set', new Response(chapter, 200, chapters));
+			self.emit(subscriptions.book.chapters.chapter.set, new Response(chapter, 200, chapters));
 		},
 		/** Set the book's name
 		* @param {string} name
 		*/
 		setName: function(name) {
 			if(!name || !_.isString(name)) {
-				return self.emit('book.name.set.error', new Response(null, 500, null));
+				return self.emit(subscriptions.book.name.setError, new Response(null, 500, null));
 			}
 
 			book.set('name', name);
-			self.emit('book.name.set', new Response(name, 200, book));
+			self.emit(subscriptions.book.name.set, new Response(name, 200, book));
 		},
 		/** Add a verse to currently selected chapter
 		* @param {string} verseText
@@ -119,20 +119,20 @@ Worker.prototype.create = function(name) {
 
 			chapter = self.workerFunctions.currentChapterObject();
 			if(!chapter) {
-				return self.emit('book.chapters.chapter.verse.crud.create.error', new Response(null, 500, null));
+				return self.emit(subscriptions.book.chapters.chapter.verses.verse.crud.create.error, new Response(null, 500, null));
 			}
 
 			verses = chapter.get('verses');
 
 			if(!_.isString(verseText) || verseText === '') {
-				return self.emit('book.chapters.chapter.verse.crud.create.error.noVerse', new Response(null, 400, null));
+				return self.emit(subscriptions.book.chapters.chapter.verses.verse.crud.create.errorNoVerse, new Response(null, 400, null));
 			}
 
 			verse = chapter.addVerse(verseText);
-			self.emit('chapters.chapter.verse.crud.create.done', new Response(verse, 200, verses));
+			self.emit(subscriptions.book.chapters.chapter.verses.verse.crud.create.done, new Response(verse, 200, verses));
 		},
 		// model.attribute-based computed-s
-		attributes: WorkerPropertyObservables(),
+		attributes: workerPropertyObservables(),
 		// abstraction of monologue for use in view models
 		subscriber: _.bind(self.on, self),
 		// abstraction of monologue for use in view models

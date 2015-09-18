@@ -4,9 +4,11 @@
  * @version 0.0.1
  */
 
-var ko;
+var ko, subscriptions;
 
 ko = require('../../bower/knockout/dist/knockout.js');
+subscriptions = require('../collections/subscriptions');
+
 ko.components.register('verses-input', {
 	viewModel: function(params) {
 		var self;
@@ -23,10 +25,10 @@ ko.components.register('verses-input', {
 		self.writingVerse = ko.observable(false);
 
 		// subscriptions
-		self.bookWorker.subscriber('chapters.chapter.verse.crud.create.done', function(data, env) {
+		self.bookWorker.subscriber(subscriptions.book.chapters.chapter.verse.crud.create.done, function(data, env) {
 			self.newVerse = ko.observable('test');
 		});
-		self.onNameSet = self.bookWorker.subscriber('book.name.set', function(data, env) {
+		self.onNameSet = self.bookWorker.subscriber(subscriptions.book.name.set, function(data, env) {
 			self.showMe(true);
 			self.onNameSet.unsubscribe();
 		});
