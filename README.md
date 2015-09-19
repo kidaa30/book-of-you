@@ -44,7 +44,7 @@ Nevertheless, a number of questiony observations (in no particular order) came u
 
 
 ##Curent State of Development (Or lack thereof)
-In terms of development, this is only an input experiment right now, so not much in terms of overall view. There's only express-scaffolded code on the node side right now. Presently, my priority is figuring out how I want to test the code already written before I add more to it.
+In terms of development, this is only an input experiment right now, so not much in terms of overall view. There's only express-scaffolded code on the node side right now. Presently, my priority is to get an import/export function setup so content can be read/wrote from json via textarea (for starters).
 
 ##A Note for Potential Clients and Decision-Makers Thereof
 I've written code in lots of styles and structures. Some are sort of like this and others have been drastically different and am pleased to adapt to standards and practices you may already have in place. I'm also just as happy to comment/opine on practices and standards should you ask.
