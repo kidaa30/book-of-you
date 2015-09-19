@@ -2,12 +2,13 @@
 
 block content
 		app-error()
-		div(data-bind="component: {name: 'book-navigator', params: {'bookWorker': bookWorker }}")
+		div(data-bind="component: {name: 'book-navigator'}")
 			h1 Loading...
 		div(class='row')
 			div(class='col-md-4')
 				verses-input()
 			div(class='col-md-8')
 				verses()
+		book-output()
 block script
 	script(src="./javascripts/bundle.js", type="text/javascript")

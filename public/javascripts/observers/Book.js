@@ -3,7 +3,7 @@
  * @author Josh Bowling
  * @version 0.0.1
  */
-var BookModel, monologue,_ , ko, Response, subscriptions, Worker, worker, util;
+var BookCollection, BookModel, monologue,_ , ko, Response, subscriptions, Worker, worker, util;
 
 util = require('util');
 
@@ -15,6 +15,7 @@ monologue = require('monologue.js');
 
 Response = require('../utility/ResponseObject.js');
 BookModel = require('../models/Book');
+BookCollection = require('../collections/Book');
 subscriptions = require('../collections/subscriptions');
 
 Worker = function(name) {
@@ -27,15 +28,20 @@ Worker.prototype = monologue.prototype;
 
 
 Worker.prototype.create = function(name) {
-	var self, book, workerFunctions, workerPropertyObservables,
+	var self, book, bookCollection, workerFunctions, workerPropertyObservables,
 		_currentChapterNum;
 
 	_currentChapterNum = 1;
 
 	self = this;
 	// this the backbone model that contains the name, chapters, verses
-	book = new BookModel(name, null);
-
+	bookCollection = new BookCollection();
+	if(bookCollection.models.length === 0) {
+		book = new BookModel(name, null);
+		bookCollection.add(book);
+	} else {
+		book = bookCollection.first();
+	}
 /** iteratively creates computed observables from backbone model attributes
 	* @todo pull keys value from the model. model attributes is pulling back more than name/chapters at present
 	* @todo investigate where this code is actually being used
@@ -52,7 +58,7 @@ Worker.prototype.create = function(name) {
 				{
 					read: function() {
 						var result;
-						result = model.get(key);
+						result = book.get(key);
 						return result;
 					},
 					write: function(val) {
@@ -102,11 +108,10 @@ Worker.prototype.create = function(name) {
 		addVerse: function(verseText) {
 			var chapters, chapter, verses, verse, num;
 
-			chapter = self.workerFunctions.currentChapterObject();
+			chapter = book.get('chapters').findWhere({num:_currentChapterNum});
 			if(!chapter) {
 				return self.emit(subscriptions.book.chapters.chapter.verses.verse.crud.create.error, new Response(null, 500, null));
 			}
-
 			verses = chapter.get('verses');
 			if(!_.isString(verseText) || verseText === '') {
 				return self.emit(subscriptions.book.chapters.chapter.verses.verse.crud.create.errorNoVerse, new Response(null, 400, null));
@@ -123,22 +128,26 @@ Worker.prototype.create = function(name) {
 		publisher: _.bind(self.emit, self),
 		currentChapter: ko.pureComputed({
 			read: function() {
-				return _currentChapterNum;
+				return book.get('chapters').findWhere({num: _currentChapterNum});
 			},
 			write: function(val) {
-				_currentChapterNum = val;
-				if(!book.get('chapters').get(val)) {
-					self.emit(subscriptions.book.chapters.chapter.setError, new Response(null, 404, null));
+				var chapter, _oldChapterNum;
+				chapter = book.get('chapters').findWhere({num: val});
+				if(!chapter) {
+					return self.emit(subscriptions.book.chapters.chapter.setError, new Response(null, 404, null));
 				};
-				self.emit(subscriptions.book.chapters.chapter.set, new Response(val, 200, {}));	
+
+				_currentChapterNum = val;
+				console.log('gd num from pubs', chapter.get('num'));
+				self.emit(subscriptions.book.chapters.chapter.set, new Response(chapter, 200, {}));	
 			}
 		}),
-		/**
-		* @todo - remove from implementation
-		*/
-		currentChapterObject: ko.pureComputed(function() {
-			return book.get('chapters').findWhere({num: workerFunctions.currentChapter()});
-		})
+		currentChapterNum: ko.pureComputed(function() {
+			return _currentChapterNum;
+		}),
+		toJSON: function() {
+			return book.toJSON();
+		}
 	};
 	self.workerFunctions = workerFunctions;
 	// emit the workerFunctions to the listeners

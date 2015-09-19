@@ -14,7 +14,6 @@ ko.components.register('app-error', {
 
 		self = this;
 		self.bookWorker = require('../observers/Book.js')().retrieve();
-
 		// subscriptions
 		self.bookWorker.subscriber('#.error.#', function(data, env) {
 			self.hasError(true);

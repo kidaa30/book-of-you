@@ -3,6 +3,7 @@ var subscriptions;
 subscriptions = {
 	book: {
 		crud: {
+			any: '#.crud.#',
 			delete: {
 				done: 'book.crud.delete.done'
 			},

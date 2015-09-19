@@ -25,7 +25,7 @@ ko.components.register('verses-input', {
 		self.writingVerse = ko.observable(false);
 
 		// subscriptions
-		self.bookWorker.subscriber(subscriptions.book.chapters.chapter.verse.crud.create.done, function(data, env) {
+		self.bookWorker.subscriber(subscriptions.book.chapters.chapter.verses.verse.crud.create.done, function(data, env) {
 			self.newVerse = ko.observable('test');
 		});
 		self.onNameSet = self.bookWorker.subscriber(subscriptions.book.name.set, function(data, env) {

@@ -22,6 +22,7 @@
   "dependencies": {
     "bootstrap": "~3.3.5",
     "knockout": "~3.3.0",
-    "monologue.js": "~0.3.3"
+    "monologue.js": "~0.3.3",
+    "backbone.localstorage": "~1.1.16"
   }
 }

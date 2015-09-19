@@ -19,19 +19,20 @@ ko.components.register('verses', {
 		self.bookWorker = require('../observers/Book.js')().retrieve();
 		// data declarations
 		self.verses = ko.observableArray();
-		self.currentChapter = ko.observable(1);
-		self.chapterHeading = ko.computed(function() { 
-			return "Chapter " + self.currentChapter();
+		self.chapterHeading = ko.pureComputed(function() { 
+			return "Chapter " + self.currentChapter().get('num');
 		});
+
+		self.currentChapter = ko.observable(self.bookWorker.currentChapter());
 		self.showMe = ko.observable(false);
 
 		// subscriptions
 		self.bookWorker.subscriber(subscriptions.book.chapters.chapter.set, function(data, env) {
-			data.context = data.result.get('verses');
-			self.currentChapter(data.result.get('num'));
-			_onIncomingVerse(data, env);
+			self.currentChapter(data.result);
+			self.verses(data.result.get('verses').toJSON());
 		});
-		self.bookWorker.subscriber(subscriptions.chapters.chapter.verse.crud.any.done, function(data, env) { 
+
+		self.bookWorker.subscriber(subscriptions.book.chapters.chapter.verses.verse.crud.create.done, function(data, env) { 
 			_onIncomingVerse(data, env);
 		});
 		self.onNameSet = self.bookWorker.subscriber(subscriptions.book.name.set, function(data, env) {
@@ -40,10 +41,7 @@ ko.components.register('verses', {
 		// behaviors
 		// internal
 		_onIncomingVerse = function(data, env) {
-			var verseData;
-
-			verseData = data.context.toJSON();
-			self.verses(verseData);
+			self.verses(data.context.toJSON());
 		};
 		_onNameSet = function(data, env) {
 			self.showMe(true);

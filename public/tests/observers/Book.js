@@ -99,11 +99,11 @@ describe('Test The Book Observer', function() {
 
 	it('test addVerse', function(done) {
 		var BookObserver, bookObserver, pubSub, subscription, worker;
+
 		BookObserver = require('../../javascripts/observers/Book');
 		bookObserver = BookObserver();
 		pubSub = bookObserver.create();
 		worker = pubSub.workerFunctions;
-		console.log(subscriptions.book.chapters.chapter.verses.verse.crud.create.done);
 		subscription = worker.subscriber(subscriptions.book.chapters.chapter.verses.verse.crud.create.done, function(data, env) {
 			data.should.be.instanceOf(Response);
 			data.result.should.be.instanceOf.String;
@@ -116,6 +116,23 @@ describe('Test The Book Observer', function() {
 
 	});
 
+	it('test currentChapter', function(done) {
+		var BookObserver, bookObserver, pubSub, subscription, worker;
+
+		BookObserver = require('../../javascripts/observers/Book');
+		bookObserver = BookObserver();
+		pubSub = bookObserver.create();
+		worker = pubSub.workerFunctions;
+		subscription = worker.subscriber(subscriptions.book.chapters.chapter.set, function(data, env) {
+			data.should.be.instanceOf(Response);
+			data.result.should.be.instanceOf.Number;
+			data.result.should.eql(2)
+			done();
+		});
+
+		worker.currentChapter(2);
+
+	});
 
 /** Integrity Tests **/
 
@@ -292,7 +309,25 @@ describe('Test The Book Observer', function() {
 	});
 
 
-/** end integrity -- addVerse **/
+	/** integrity -- currentChapter **/
+	/** set to null **/
+	it('integrity -- test currentChapter set to null', function(done) {
+		var BookObserver, bookObserver, pubSub, subscription, worker;
+
+		BookObserver = require('../../javascripts/observers/Book');
+		bookObserver = BookObserver();
+		pubSub = bookObserver.create();
+		worker = pubSub.workerFunctions;
+		subscription = worker.subscriber(subscriptions.book.chapters.chapter.setError, function(data, env) {
+			data.should.be.instanceOf(Response);
+			data.result.code.should.eql(404);
+			done();
+		});
+
+		worker.currentChapter(null);
+
+	});
+	/** end integrity -- currentChapter **/
 
 
 });

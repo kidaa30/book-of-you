@@ -1,1230 +1,264 @@
 (function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
-(function (process,global){
-/*!
- * async
- * https://github.com/caolan/async
+/**
+ * Backbone localStorage Adapter
+ * Version 1.1.16
  *
- * Copyright 2010-2014 Caolan McMahon
- * Released under the MIT license
+ * https://github.com/jeromegn/Backbone.localStorage
  */
-(function () {
-
-    var async = {};
-    function noop() {}
-    function identity(v) {
-        return v;
-    }
-    function toBool(v) {
-        return !!v;
-    }
-    function notId(v) {
-        return !v;
-    }
-
-    // global on the server, window in the browser
-    var previous_async;
-
-    // Establish the root object, `window` (`self`) in the browser, `global`
-    // on the server, or `this` in some virtual machines. We use `self`
-    // instead of `window` for `WebWorker` support.
-    var root = typeof self === 'object' && self.self === self && self ||
-            typeof global === 'object' && global.global === global && global ||
-            this;
-
-    if (root != null) {
-        previous_async = root.async;
-    }
-
-    async.noConflict = function () {
-        root.async = previous_async;
-        return async;
-    };
-
-    function only_once(fn) {
-        return function() {
-            if (fn === null) throw new Error("Callback was already called.");
-            fn.apply(this, arguments);
-            fn = null;
-        };
-    }
-
-    function _once(fn) {
-        return function() {
-            if (fn === null) return;
-            fn.apply(this, arguments);
-            fn = null;
-        };
-    }
-
-    //// cross-browser compatiblity functions ////
-
-    var _toString = Object.prototype.toString;
-
-    var _isArray = Array.isArray || function (obj) {
-        return _toString.call(obj) === '[object Array]';
-    };
-
-    // Ported from underscore.js isObject
-    var _isObject = function(obj) {
-        var type = typeof obj;
-        return type === 'function' || type === 'object' && !!obj;
-    };
-
-    function _isArrayLike(arr) {
-        return _isArray(arr) || (
-            // has a positive integer length property
-            typeof arr.length === "number" &&
-            arr.length >= 0 &&
-            arr.length % 1 === 0
-        );
-    }
-
-    function _each(coll, iterator) {
-        return _isArrayLike(coll) ?
-            _arrayEach(coll, iterator) :
-            _forEachOf(coll, iterator);
-    }
-
-    function _arrayEach(arr, iterator) {
-        var index = -1,
-            length = arr.length;
-
-        while (++index < length) {
-            iterator(arr[index], index, arr);
-        }
-    }
-
-    function _map(arr, iterator) {
-        var index = -1,
-            length = arr.length,
-            result = Array(length);
-
-        while (++index < length) {
-            result[index] = iterator(arr[index], index, arr);
-        }
-        return result;
-    }
-
-    function _range(count) {
-        return _map(Array(count), function (v, i) { return i; });
-    }
-
-    function _reduce(arr, iterator, memo) {
-        _arrayEach(arr, function (x, i, a) {
-            memo = iterator(memo, x, i, a);
-        });
-        return memo;
-    }
-
-    function _forEachOf(object, iterator) {
-        _arrayEach(_keys(object), function (key) {
-            iterator(object[key], key);
-        });
-    }
-
-    function _indexOf(arr, item) {
-        for (var i = 0; i < arr.length; i++) {
-            if (arr[i] === item) return i;
-        }
-        return -1;
-    }
-
-    var _keys = Object.keys || function (obj) {
-        var keys = [];
-        for (var k in obj) {
-            if (obj.hasOwnProperty(k)) {
-                keys.push(k);
-            }
-        }
-        return keys;
-    };
-
-    function _keyIterator(coll) {
-        var i = -1;
-        var len;
-        var keys;
-        if (_isArrayLike(coll)) {
-            len = coll.length;
-            return function next() {
-                i++;
-                return i < len ? i : null;
-            };
-        } else {
-            keys = _keys(coll);
-            len = keys.length;
-            return function next() {
-                i++;
-                return i < len ? keys[i] : null;
-            };
-        }
-    }
-
-    // Similar to ES6's rest param (http://ariya.ofilabs.com/2013/03/es6-and-rest-parameter.html)
-    // This accumulates the arguments passed into an array, after a given index.
-    // From underscore.js (https://github.com/jashkenas/underscore/pull/2140).
-    function _restParam(func, startIndex) {
-        startIndex = startIndex == null ? func.length - 1 : +startIndex;
-        return function() {
-            var length = Math.max(arguments.length - startIndex, 0);
-            var rest = Array(length);
-            for (var index = 0; index < length; index++) {
-                rest[index] = arguments[index + startIndex];
-            }
-            switch (startIndex) {
-                case 0: return func.call(this, rest);
-                case 1: return func.call(this, arguments[0], rest);
-            }
-            // Currently unused but handle cases outside of the switch statement:
-            // var args = Array(startIndex + 1);
-            // for (index = 0; index < startIndex; index++) {
-            //     args[index] = arguments[index];
-            // }
-            // args[startIndex] = rest;
-            // return func.apply(this, args);
-        };
-    }
-
-    function _withoutIndex(iterator) {
-        return function (value, index, callback) {
-            return iterator(value, callback);
-        };
-    }
-
-    //// exported async module functions ////
-
-    //// nextTick implementation with browser-compatible fallback ////
-
-    // capture the global reference to guard against fakeTimer mocks
-    var _setImmediate = typeof setImmediate === 'function' && setImmediate;
-
-    var _delay = _setImmediate ? function(fn) {
-        // not a direct alias for IE10 compatibility
-        _setImmediate(fn);
-    } : function(fn) {
-        setTimeout(fn, 0);
-    };
-
-    if (typeof process === 'object' && typeof process.nextTick === 'function') {
-        async.nextTick = process.nextTick;
-    } else {
-        async.nextTick = _delay;
-    }
-    async.setImmediate = _setImmediate ? _delay : async.nextTick;
-
-
-    async.forEach =
-    async.each = function (arr, iterator, callback) {
-        return async.eachOf(arr, _withoutIndex(iterator), callback);
-    };
-
-    async.forEachSeries =
-    async.eachSeries = function (arr, iterator, callback) {
-        return async.eachOfSeries(arr, _withoutIndex(iterator), callback);
-    };
-
-
-    async.forEachLimit =
-    async.eachLimit = function (arr, limit, iterator, callback) {
-        return _eachOfLimit(limit)(arr, _withoutIndex(iterator), callback);
-    };
-
-    async.forEachOf =
-    async.eachOf = function (object, iterator, callback) {
-        callback = _once(callback || noop);
-        object = object || [];
-        var size = _isArrayLike(object) ? object.length : _keys(object).length;
-        var completed = 0;
-        if (!size) {
-            return callback(null);
-        }
-        _each(object, function (value, key) {
-            iterator(object[key], key, only_once(done));
-        });
-        function done(err) {
-            if (err) {
-                callback(err);
-            }
-            else {
-                completed += 1;
-                if (completed >= size) {
-                    callback(null);
-                }
-            }
-        }
-    };
-
-    async.forEachOfSeries =
-    async.eachOfSeries = function (obj, iterator, callback) {
-        callback = _once(callback || noop);
-        obj = obj || [];
-        var nextKey = _keyIterator(obj);
-        var key = nextKey();
-        function iterate() {
-            var sync = true;
-            if (key === null) {
-                return callback(null);
-            }
-            iterator(obj[key], key, only_once(function (err) {
-                if (err) {
-                    callback(err);
-                }
-                else {
-                    key = nextKey();
-                    if (key === null) {
-                        return callback(null);
-                    } else {
-                        if (sync) {
-                            async.nextTick(iterate);
-                        } else {
-                            iterate();
-                        }
-                    }
-                }
-            }));
-            sync = false;
-        }
-        iterate();
-    };
-
-
-
-    async.forEachOfLimit =
-    async.eachOfLimit = function (obj, limit, iterator, callback) {
-        _eachOfLimit(limit)(obj, iterator, callback);
-    };
-
-    function _eachOfLimit(limit) {
-
-        return function (obj, iterator, callback) {
-            callback = _once(callback || noop);
-            obj = obj || [];
-            var nextKey = _keyIterator(obj);
-            if (limit <= 0) {
-                return callback(null);
-            }
-            var done = false;
-            var running = 0;
-            var errored = false;
-
-            (function replenish () {
-                if (done && running <= 0) {
-                    return callback(null);
-                }
-
-                while (running < limit && !errored) {
-                    var key = nextKey();
-                    if (key === null) {
-                        done = true;
-                        if (running <= 0) {
-                            callback(null);
-                        }
-                        return;
-                    }
-                    running += 1;
-                    iterator(obj[key], key, only_once(function (err) {
-                        running -= 1;
-                        if (err) {
-                            callback(err);
-                            errored = true;
-                        }
-                        else {
-                            replenish();
-                        }
-                    }));
-                }
-            })();
-        };
-    }
-
-
-    function doParallel(fn) {
-        return function (obj, iterator, callback) {
-            return fn(async.eachOf, obj, iterator, callback);
-        };
-    }
-    function doParallelLimit(fn) {
-        return function (obj, limit, iterator, callback) {
-            return fn(_eachOfLimit(limit), obj, iterator, callback);
-        };
-    }
-    function doSeries(fn) {
-        return function (obj, iterator, callback) {
-            return fn(async.eachOfSeries, obj, iterator, callback);
-        };
-    }
-
-    function _asyncMap(eachfn, arr, iterator, callback) {
-        callback = _once(callback || noop);
-        var results = [];
-        eachfn(arr, function (value, index, callback) {
-            iterator(value, function (err, v) {
-                results[index] = v;
-                callback(err);
-            });
-        }, function (err) {
-            callback(err, results);
-        });
-    }
-
-    async.map = doParallel(_asyncMap);
-    async.mapSeries = doSeries(_asyncMap);
-    async.mapLimit = doParallelLimit(_asyncMap);
-
-    // reduce only has a series version, as doing reduce in parallel won't
-    // work in many situations.
-    async.inject =
-    async.foldl =
-    async.reduce = function (arr, memo, iterator, callback) {
-        async.eachOfSeries(arr, function (x, i, callback) {
-            iterator(memo, x, function (err, v) {
-                memo = v;
-                callback(err);
-            });
-        }, function (err) {
-            callback(err || null, memo);
-        });
-    };
-
-    async.foldr =
-    async.reduceRight = function (arr, memo, iterator, callback) {
-        var reversed = _map(arr, identity).reverse();
-        async.reduce(reversed, memo, iterator, callback);
-    };
-
-    function _filter(eachfn, arr, iterator, callback) {
-        var results = [];
-        eachfn(arr, function (x, index, callback) {
-            iterator(x, function (v) {
-                if (v) {
-                    results.push({index: index, value: x});
-                }
-                callback();
-            });
-        }, function () {
-            callback(_map(results.sort(function (a, b) {
-                return a.index - b.index;
-            }), function (x) {
-                return x.value;
-            }));
-        });
-    }
-
-    async.select =
-    async.filter = doParallel(_filter);
-
-    async.selectLimit =
-    async.filterLimit = doParallelLimit(_filter);
-
-    async.selectSeries =
-    async.filterSeries = doSeries(_filter);
-
-    function _reject(eachfn, arr, iterator, callback) {
-        _filter(eachfn, arr, function(value, cb) {
-            iterator(value, function(v) {
-                cb(!v);
-            });
-        }, callback);
-    }
-    async.reject = doParallel(_reject);
-    async.rejectLimit = doParallelLimit(_reject);
-    async.rejectSeries = doSeries(_reject);
-
-    function _createTester(eachfn, check, getResult) {
-        return function(arr, limit, iterator, cb) {
-            function done() {
-                if (cb) cb(getResult(false, void 0));
-            }
-            function iteratee(x, _, callback) {
-                if (!cb) return callback();
-                iterator(x, function (v) {
-                    if (cb && check(v)) {
-                        cb(getResult(true, x));
-                        cb = iterator = false;
-                    }
-                    callback();
-                });
-            }
-            if (arguments.length > 3) {
-                eachfn(arr, limit, iteratee, done);
-            } else {
-                cb = iterator;
-                iterator = limit;
-                eachfn(arr, iteratee, done);
-            }
-        };
-    }
-
-    async.any =
-    async.some = _createTester(async.eachOf, toBool, identity);
-
-    async.someLimit = _createTester(async.eachOfLimit, toBool, identity);
-
-    async.all =
-    async.every = _createTester(async.eachOf, notId, notId);
-
-    async.everyLimit = _createTester(async.eachOfLimit, notId, notId);
-
-    function _findGetResult(v, x) {
-        return x;
-    }
-    async.detect = _createTester(async.eachOf, identity, _findGetResult);
-    async.detectSeries = _createTester(async.eachOfSeries, identity, _findGetResult);
-    async.detectLimit = _createTester(async.eachOfLimit, identity, _findGetResult);
-
-    async.sortBy = function (arr, iterator, callback) {
-        async.map(arr, function (x, callback) {
-            iterator(x, function (err, criteria) {
-                if (err) {
-                    callback(err);
-                }
-                else {
-                    callback(null, {value: x, criteria: criteria});
-                }
-            });
-        }, function (err, results) {
-            if (err) {
-                return callback(err);
-            }
-            else {
-                callback(null, _map(results.sort(comparator), function (x) {
-                    return x.value;
-                }));
-            }
-
-        });
-
-        function comparator(left, right) {
-            var a = left.criteria, b = right.criteria;
-            return a < b ? -1 : a > b ? 1 : 0;
-        }
-    };
-
-    async.auto = function (tasks, callback) {
-        callback = _once(callback || noop);
-        var keys = _keys(tasks);
-        var remainingTasks = keys.length;
-        if (!remainingTasks) {
-            return callback(null);
-        }
-
-        var results = {};
-
-        var listeners = [];
-        function addListener(fn) {
-            listeners.unshift(fn);
-        }
-        function removeListener(fn) {
-            var idx = _indexOf(listeners, fn);
-            if (idx >= 0) listeners.splice(idx, 1);
-        }
-        function taskComplete() {
-            remainingTasks--;
-            _arrayEach(listeners.slice(0), function (fn) {
-                fn();
-            });
-        }
-
-        addListener(function () {
-            if (!remainingTasks) {
-                callback(null, results);
-            }
-        });
-
-        _arrayEach(keys, function (k) {
-            var task = _isArray(tasks[k]) ? tasks[k]: [tasks[k]];
-            var taskCallback = _restParam(function(err, args) {
-                if (args.length <= 1) {
-                    args = args[0];
-                }
-                if (err) {
-                    var safeResults = {};
-                    _forEachOf(results, function(val, rkey) {
-                        safeResults[rkey] = val;
-                    });
-                    safeResults[k] = args;
-                    callback(err, safeResults);
-                }
-                else {
-                    results[k] = args;
-                    async.setImmediate(taskComplete);
-                }
-            });
-            var requires = task.slice(0, task.length - 1);
-            // prevent dead-locks
-            var len = requires.length;
-            var dep;
-            while (len--) {
-                if (!(dep = tasks[requires[len]])) {
-                    throw new Error('Has inexistant dependency');
-                }
-                if (_isArray(dep) && _indexOf(dep, k) >= 0) {
-                    throw new Error('Has cyclic dependencies');
-                }
-            }
-            function ready() {
-                return _reduce(requires, function (a, x) {
-                    return (a && results.hasOwnProperty(x));
-                }, true) && !results.hasOwnProperty(k);
-            }
-            if (ready()) {
-                task[task.length - 1](taskCallback, results);
-            }
-            else {
-                addListener(listener);
-            }
-            function listener() {
-                if (ready()) {
-                    removeListener(listener);
-                    task[task.length - 1](taskCallback, results);
-                }
-            }
-        });
-    };
-
-
-
-    async.retry = function(times, task, callback) {
-        var DEFAULT_TIMES = 5;
-        var DEFAULT_INTERVAL = 0;
-
-        var attempts = [];
-
-        var opts = {
-            times: DEFAULT_TIMES,
-            interval: DEFAULT_INTERVAL
-        };
-
-        function parseTimes(acc, t){
-            if(typeof t === 'number'){
-                acc.times = parseInt(t, 10) || DEFAULT_TIMES;
-            } else if(typeof t === 'object'){
-                acc.times = parseInt(t.times, 10) || DEFAULT_TIMES;
-                acc.interval = parseInt(t.interval, 10) || DEFAULT_INTERVAL;
-            } else {
-                throw new Error('Unsupported argument type for \'times\': ' + typeof t);
-            }
-        }
-
-        var length = arguments.length;
-        if (length < 1 || length > 3) {
-            throw new Error('Invalid arguments - must be either (task), (task, callback), (times, task) or (times, task, callback)');
-        } else if (length <= 2 && typeof times === 'function') {
-            callback = task;
-            task = times;
-        }
-        if (typeof times !== 'function') {
-            parseTimes(opts, times);
-        }
-        opts.callback = callback;
-        opts.task = task;
-
-        function wrappedTask(wrappedCallback, wrappedResults) {
-            function retryAttempt(task, finalAttempt) {
-                return function(seriesCallback) {
-                    task(function(err, result){
-                        seriesCallback(!err || finalAttempt, {err: err, result: result});
-                    }, wrappedResults);
-                };
-            }
-
-            function retryInterval(interval){
-                return function(seriesCallback){
-                    setTimeout(function(){
-                        seriesCallback(null);
-                    }, interval);
-                };
-            }
-
-            while (opts.times) {
-
-                var finalAttempt = !(opts.times-=1);
-                attempts.push(retryAttempt(opts.task, finalAttempt));
-                if(!finalAttempt && opts.interval > 0){
-                    attempts.push(retryInterval(opts.interval));
-                }
-            }
-
-            async.series(attempts, function(done, data){
-                data = data[data.length - 1];
-                (wrappedCallback || opts.callback)(data.err, data.result);
-            });
-        }
-
-        // If a callback is passed, run this as a controll flow
-        return opts.callback ? wrappedTask() : wrappedTask;
-    };
-
-    async.waterfall = function (tasks, callback) {
-        callback = _once(callback || noop);
-        if (!_isArray(tasks)) {
-            var err = new Error('First argument to waterfall must be an array of functions');
-            return callback(err);
-        }
-        if (!tasks.length) {
-            return callback();
-        }
-        function wrapIterator(iterator) {
-            return _restParam(function (err, args) {
-                if (err) {
-                    callback.apply(null, [err].concat(args));
-                }
-                else {
-                    var next = iterator.next();
-                    if (next) {
-                        args.push(wrapIterator(next));
-                    }
-                    else {
-                        args.push(callback);
-                    }
-                    ensureAsync(iterator).apply(null, args);
-                }
-            });
-        }
-        wrapIterator(async.iterator(tasks))();
-    };
-
-    function _parallel(eachfn, tasks, callback) {
-        callback = callback || noop;
-        var results = _isArrayLike(tasks) ? [] : {};
-
-        eachfn(tasks, function (task, key, callback) {
-            task(_restParam(function (err, args) {
-                if (args.length <= 1) {
-                    args = args[0];
-                }
-                results[key] = args;
-                callback(err);
-            }));
-        }, function (err) {
-            callback(err, results);
-        });
-    }
-
-    async.parallel = function (tasks, callback) {
-        _parallel(async.eachOf, tasks, callback);
-    };
-
-    async.parallelLimit = function(tasks, limit, callback) {
-        _parallel(_eachOfLimit(limit), tasks, callback);
-    };
-
-    async.series = function(tasks, callback) {
-        _parallel(async.eachOfSeries, tasks, callback);
-    };
-
-    async.iterator = function (tasks) {
-        function makeCallback(index) {
-            function fn() {
-                if (tasks.length) {
-                    tasks[index].apply(null, arguments);
-                }
-                return fn.next();
-            }
-            fn.next = function () {
-                return (index < tasks.length - 1) ? makeCallback(index + 1): null;
-            };
-            return fn;
-        }
-        return makeCallback(0);
-    };
-
-    async.apply = _restParam(function (fn, args) {
-        return _restParam(function (callArgs) {
-            return fn.apply(
-                null, args.concat(callArgs)
-            );
-        });
+(function (root, factory) {
+  if (typeof exports === 'object' && typeof require === 'function') {
+    module.exports = factory(require("backbone"));
+  } else if (typeof define === "function" && define.amd) {
+    // AMD. Register as an anonymous module.
+    define(["backbone"], function(Backbone) {
+      // Use global variables if the locals are undefined.
+      return factory(Backbone || root.Backbone);
     });
+  } else {
+    factory(Backbone);
+  }
+}(this, function(Backbone) {
+// A simple module to replace `Backbone.sync` with *localStorage*-based
+// persistence. Models are given GUIDS, and saved into a JSON object. Simple
+// as that.
 
-    function _concat(eachfn, arr, fn, callback) {
-        var result = [];
-        eachfn(arr, function (x, index, cb) {
-            fn(x, function (err, y) {
-                result = result.concat(y || []);
-                cb(err);
-            });
-        }, function (err) {
-            callback(err, result);
-        });
+// Generate four random hex digits.
+function S4() {
+   return (((1+Math.random())*0x10000)|0).toString(16).substring(1);
+};
+
+// Generate a pseudo-GUID by concatenating random hexadecimal.
+function guid() {
+   return (S4()+S4()+"-"+S4()+"-"+S4()+"-"+S4()+"-"+S4()+S4()+S4());
+};
+
+function isObject(item) {
+  return item === Object(item);
+}
+
+function contains(array, item) {
+  var i = array.length;
+  while (i--) if (array[i] === item) return true;
+  return false;
+}
+
+function extend(obj, props) {
+  for (var key in props) obj[key] = props[key]
+  return obj;
+}
+
+function result(object, property) {
+    if (object == null) return void 0;
+    var value = object[property];
+    return (typeof value === 'function') ? object[property]() : value;
+}
+
+// Our Store is represented by a single JS object in *localStorage*. Create it
+// with a meaningful name, like the name you'd give a table.
+// window.Store is deprectated, use Backbone.LocalStorage instead
+Backbone.LocalStorage = window.Store = function(name, serializer) {
+  if( !this.localStorage ) {
+    throw "Backbone.localStorage: Environment does not support localStorage."
+  }
+  this.name = name;
+  this.serializer = serializer || {
+    serialize: function(item) {
+      return isObject(item) ? JSON.stringify(item) : item;
+    },
+    // fix for "illegal access" error on Android when JSON.parse is passed null
+    deserialize: function (data) {
+      return data && JSON.parse(data);
     }
-    async.concat = doParallel(_concat);
-    async.concatSeries = doSeries(_concat);
+  };
+  var store = this.localStorage().getItem(this.name);
+  this.records = (store && store.split(",")) || [];
+};
 
-    async.whilst = function (test, iterator, callback) {
-        callback = callback || noop;
-        if (test()) {
-            var next = _restParam(function(err, args) {
-                if (err) {
-                    callback(err);
-                } else if (test.apply(this, args)) {
-                    iterator(next);
-                } else {
-                    callback(null);
-                }
-            });
-            iterator(next);
-        } else {
-            callback(null);
-        }
-    };
+extend(Backbone.LocalStorage.prototype, {
 
-    async.doWhilst = function (iterator, test, callback) {
-        var calls = 0;
-        return async.whilst(function() {
-            return ++calls <= 1 || test.apply(this, arguments);
-        }, iterator, callback);
-    };
+  // Save the current state of the **Store** to *localStorage*.
+  save: function() {
+    this.localStorage().setItem(this.name, this.records.join(","));
+  },
 
-    async.until = function (test, iterator, callback) {
-        return async.whilst(function() {
-            return !test.apply(this, arguments);
-        }, iterator, callback);
-    };
+  // Add a model, giving it a (hopefully)-unique GUID, if it doesn't already
+  // have an id of it's own.
+  create: function(model) {
+    if (!model.id && model.id !== 0) {
+      model.id = guid();
+      model.set(model.idAttribute, model.id);
+    }
+    this.localStorage().setItem(this._itemName(model.id), this.serializer.serialize(model));
+    this.records.push(model.id.toString());
+    this.save();
+    return this.find(model);
+  },
 
-    async.doUntil = function (iterator, test, callback) {
-        return async.doWhilst(iterator, function() {
-            return !test.apply(this, arguments);
-        }, callback);
-    };
+  // Update a model by replacing its copy in `this.data`.
+  update: function(model) {
+    this.localStorage().setItem(this._itemName(model.id), this.serializer.serialize(model));
+    var modelId = model.id.toString();
+    if (!contains(this.records, modelId)) {
+      this.records.push(modelId);
+      this.save();
+    }
+    return this.find(model);
+  },
 
-    async.during = function (test, iterator, callback) {
-        callback = callback || noop;
+  // Retrieve a model from `this.data` by id.
+  find: function(model) {
+    return this.serializer.deserialize(this.localStorage().getItem(this._itemName(model.id)));
+  },
 
-        var next = _restParam(function(err, args) {
-            if (err) {
-                callback(err);
-            } else {
-                args.push(check);
-                test.apply(this, args);
-            }
-        });
+  // Return the array of all models currently in storage.
+  findAll: function() {
+    var result = [];
+    for (var i = 0, id, data; i < this.records.length; i++) {
+      id = this.records[i];
+      data = this.serializer.deserialize(this.localStorage().getItem(this._itemName(id)));
+      if (data != null) result.push(data);
+    }
+    return result;
+  },
 
-        var check = function(err, truth) {
-            if (err) {
-                callback(err);
-            } else if (truth) {
-                iterator(next);
-            } else {
-                callback(null);
-            }
-        };
+  // Delete a model from `this.data`, returning it.
+  destroy: function(model) {
+    this.localStorage().removeItem(this._itemName(model.id));
+    var modelId = model.id.toString();
+    for (var i = 0, id; i < this.records.length; i++) {
+      if (this.records[i] === modelId) {
+        this.records.splice(i, 1);
+      }
+    }
+    this.save();
+    return model;
+  },
 
-        test(check);
-    };
+  localStorage: function() {
+    return localStorage;
+  },
 
-    async.doDuring = function (iterator, test, callback) {
-        var calls = 0;
-        async.during(function(next) {
-            if (calls++ < 1) {
-                next(null, true);
-            } else {
-                test.apply(this, arguments);
-            }
-        }, iterator, callback);
-    };
+  // Clear localStorage for specific collection.
+  _clear: function() {
+    var local = this.localStorage(),
+      itemRe = new RegExp("^" + this.name + "-");
 
-    function _queue(worker, concurrency, payload) {
-        if (concurrency == null) {
-            concurrency = 1;
-        }
-        else if(concurrency === 0) {
-            throw new Error('Concurrency must not be zero');
-        }
-        function _insert(q, data, pos, callback) {
-            if (callback != null && typeof callback !== "function") {
-                throw new Error("task callback must be a function");
-            }
-            q.started = true;
-            if (!_isArray(data)) {
-                data = [data];
-            }
-            if(data.length === 0 && q.idle()) {
-                // call drain immediately if there are no tasks
-                return async.setImmediate(function() {
-                    q.drain();
-                });
-            }
-            _arrayEach(data, function(task) {
-                var item = {
-                    data: task,
-                    callback: callback || noop
-                };
+    // Remove id-tracking item (e.g., "foo").
+    local.removeItem(this.name);
 
-                if (pos) {
-                    q.tasks.unshift(item);
-                } else {
-                    q.tasks.push(item);
-                }
-
-                if (q.tasks.length === q.concurrency) {
-                    q.saturated();
-                }
-            });
-            async.setImmediate(q.process);
-        }
-        function _next(q, tasks) {
-            return function(){
-                workers -= 1;
-                var args = arguments;
-                _arrayEach(tasks, function (task) {
-                    task.callback.apply(task, args);
-                });
-                if (q.tasks.length + workers === 0) {
-                    q.drain();
-                }
-                q.process();
-            };
-        }
-
-        var workers = 0;
-        var q = {
-            tasks: [],
-            concurrency: concurrency,
-            payload: payload,
-            saturated: noop,
-            empty: noop,
-            drain: noop,
-            started: false,
-            paused: false,
-            push: function (data, callback) {
-                _insert(q, data, false, callback);
-            },
-            kill: function () {
-                q.drain = noop;
-                q.tasks = [];
-            },
-            unshift: function (data, callback) {
-                _insert(q, data, true, callback);
-            },
-            process: function () {
-                if (!q.paused && workers < q.concurrency && q.tasks.length) {
-                    while(workers < q.concurrency && q.tasks.length){
-                        var tasks = q.payload ?
-                            q.tasks.splice(0, q.payload) :
-                            q.tasks.splice(0, q.tasks.length);
-
-                        var data = _map(tasks, function (task) {
-                            return task.data;
-                        });
-
-                        if (q.tasks.length === 0) {
-                            q.empty();
-                        }
-                        workers += 1;
-                        var cb = only_once(_next(q, tasks));
-                        worker(data, cb);
-                    }
-                }
-            },
-            length: function () {
-                return q.tasks.length;
-            },
-            running: function () {
-                return workers;
-            },
-            idle: function() {
-                return q.tasks.length + workers === 0;
-            },
-            pause: function () {
-                q.paused = true;
-            },
-            resume: function () {
-                if (q.paused === false) { return; }
-                q.paused = false;
-                var resumeCount = Math.min(q.concurrency, q.tasks.length);
-                // Need to call q.process once per concurrent
-                // worker to preserve full concurrency after pause
-                for (var w = 1; w <= resumeCount; w++) {
-                    async.setImmediate(q.process);
-                }
-            }
-        };
-        return q;
+    // Match all data items (e.g., "foo-ID") and remove.
+    for (var k in local) {
+      if (itemRe.test(k)) {
+        local.removeItem(k);
+      }
     }
 
-    async.queue = function (worker, concurrency) {
-        var q = _queue(function (items, cb) {
-            worker(items[0], cb);
-        }, concurrency, 1);
+    this.records.length = 0;
+  },
 
-        return q;
-    };
+  // Size of localStorage.
+  _storageSize: function() {
+    return this.localStorage().length;
+  },
 
-    async.priorityQueue = function (worker, concurrency) {
+  _itemName: function(id) {
+    return this.name+"-"+id;
+  }
 
-        function _compareTasks(a, b){
-            return a.priority - b.priority;
-        }
+});
 
-        function _binarySearch(sequence, item, compare) {
-            var beg = -1,
-                end = sequence.length - 1;
-            while (beg < end) {
-                var mid = beg + ((end - beg + 1) >>> 1);
-                if (compare(item, sequence[mid]) >= 0) {
-                    beg = mid;
-                } else {
-                    end = mid - 1;
-                }
-            }
-            return beg;
-        }
+// localSync delegate to the model or collection's
+// *localStorage* property, which should be an instance of `Store`.
+// window.Store.sync and Backbone.localSync is deprecated, use Backbone.LocalStorage.sync instead
+Backbone.LocalStorage.sync = window.Store.sync = Backbone.localSync = function(method, model, options) {
+  var store = result(model, 'localStorage') || result(model.collection, 'localStorage');
 
-        function _insert(q, data, priority, callback) {
-            if (callback != null && typeof callback !== "function") {
-                throw new Error("task callback must be a function");
-            }
-            q.started = true;
-            if (!_isArray(data)) {
-                data = [data];
-            }
-            if(data.length === 0) {
-                // call drain immediately if there are no tasks
-                return async.setImmediate(function() {
-                    q.drain();
-                });
-            }
-            _arrayEach(data, function(task) {
-                var item = {
-                    data: task,
-                    priority: priority,
-                    callback: typeof callback === 'function' ? callback : noop
-                };
+  var resp, errorMessage;
+  //If $ is having Deferred - use it.
+  var syncDfd = Backbone.$ ?
+    (Backbone.$.Deferred && Backbone.$.Deferred()) :
+    (Backbone.Deferred && Backbone.Deferred());
 
-                q.tasks.splice(_binarySearch(q.tasks, item, _compareTasks) + 1, 0, item);
+  try {
 
-                if (q.tasks.length === q.concurrency) {
-                    q.saturated();
-                }
-                async.setImmediate(q.process);
-            });
-        }
-
-        // Start with a normal queue
-        var q = async.queue(worker, concurrency);
-
-        // Override push to accept second parameter representing priority
-        q.push = function (data, priority, callback) {
-            _insert(q, data, priority, callback);
-        };
-
-        // Remove unshift function
-        delete q.unshift;
-
-        return q;
-    };
-
-    async.cargo = function (worker, payload) {
-        return _queue(worker, 1, payload);
-    };
-
-    function _console_fn(name) {
-        return _restParam(function (fn, args) {
-            fn.apply(null, args.concat([_restParam(function (err, args) {
-                if (typeof console === 'object') {
-                    if (err) {
-                        if (console.error) {
-                            console.error(err);
-                        }
-                    }
-                    else if (console[name]) {
-                        _arrayEach(args, function (x) {
-                            console[name](x);
-                        });
-                    }
-                }
-            })]));
-        });
-    }
-    async.log = _console_fn('log');
-    async.dir = _console_fn('dir');
-    /*async.info = _console_fn('info');
-    async.warn = _console_fn('warn');
-    async.error = _console_fn('error');*/
-
-    async.memoize = function (fn, hasher) {
-        var memo = {};
-        var queues = {};
-        hasher = hasher || identity;
-        var memoized = _restParam(function memoized(args) {
-            var callback = args.pop();
-            var key = hasher.apply(null, args);
-            if (key in memo) {
-                async.nextTick(function () {
-                    callback.apply(null, memo[key]);
-                });
-            }
-            else if (key in queues) {
-                queues[key].push(callback);
-            }
-            else {
-                queues[key] = [callback];
-                fn.apply(null, args.concat([_restParam(function (args) {
-                    memo[key] = args;
-                    var q = queues[key];
-                    delete queues[key];
-                    for (var i = 0, l = q.length; i < l; i++) {
-                        q[i].apply(null, args);
-                    }
-                })]));
-            }
-        });
-        memoized.memo = memo;
-        memoized.unmemoized = fn;
-        return memoized;
-    };
-
-    async.unmemoize = function (fn) {
-        return function () {
-            return (fn.unmemoized || fn).apply(null, arguments);
-        };
-    };
-
-    function _times(mapper) {
-        return function (count, iterator, callback) {
-            mapper(_range(count), iterator, callback);
-        };
+    switch (method) {
+      case "read":
+        resp = model.id != undefined ? store.find(model) : store.findAll();
+        break;
+      case "create":
+        resp = store.create(model);
+        break;
+      case "update":
+        resp = store.update(model);
+        break;
+      case "delete":
+        resp = store.destroy(model);
+        break;
     }
 
-    async.times = _times(async.map);
-    async.timesSeries = _times(async.mapSeries);
-    async.timesLimit = function (count, limit, iterator, callback) {
-        return async.mapLimit(_range(count), limit, iterator, callback);
-    };
+  } catch(error) {
+    if (error.code === 22 && store._storageSize() === 0)
+      errorMessage = "Private browsing is unsupported";
+    else
+      errorMessage = error.message;
+  }
 
-    async.seq = function (/* functions... */) {
-        var fns = arguments;
-        return _restParam(function (args) {
-            var that = this;
-
-            var callback = args[args.length - 1];
-            if (typeof callback == 'function') {
-                args.pop();
-            } else {
-                callback = noop;
-            }
-
-            async.reduce(fns, args, function (newargs, fn, cb) {
-                fn.apply(that, newargs.concat([_restParam(function (err, nextargs) {
-                    cb(err, nextargs);
-                })]));
-            },
-            function (err, results) {
-                callback.apply(that, [err].concat(results));
-            });
-        });
-    };
-
-    async.compose = function (/* functions... */) {
-        return async.seq.apply(null, Array.prototype.reverse.call(arguments));
-    };
-
-
-    function _applyEach(eachfn) {
-        return _restParam(function(fns, args) {
-            var go = _restParam(function(args) {
-                var that = this;
-                var callback = args.pop();
-                return eachfn(fns, function (fn, _, cb) {
-                    fn.apply(that, args.concat([cb]));
-                },
-                callback);
-            });
-            if (args.length) {
-                return go.apply(this, args);
-            }
-            else {
-                return go;
-            }
-        });
+  if (resp) {
+    if (options && options.success) {
+      if (Backbone.VERSION === "0.9.10") {
+        options.success(model, resp, options);
+      } else {
+        options.success(resp);
+      }
+    }
+    if (syncDfd) {
+      syncDfd.resolve(resp);
     }
 
-    async.applyEach = _applyEach(async.eachOf);
-    async.applyEachSeries = _applyEach(async.eachOfSeries);
+  } else {
+    errorMessage = errorMessage ? errorMessage
+                                : "Record Not Found";
 
+    if (options && options.error)
+      if (Backbone.VERSION === "0.9.10") {
+        options.error(model, errorMessage, options);
+      } else {
+        options.error(errorMessage);
+      }
 
-    async.forever = function (fn, callback) {
-        var done = only_once(callback || noop);
-        var task = ensureAsync(fn);
-        function next(err) {
-            if (err) {
-                return done(err);
-            }
-            task(next);
-        }
-        next();
-    };
+    if (syncDfd)
+      syncDfd.reject(errorMessage);
+  }
 
-    function ensureAsync(fn) {
-        return _restParam(function (args) {
-            var callback = args.pop();
-            args.push(function () {
-                var innerArgs = arguments;
-                if (sync) {
-                    async.setImmediate(function () {
-                        callback.apply(null, innerArgs);
-                    });
-                } else {
-                    callback.apply(null, innerArgs);
-                }
-            });
-            var sync = true;
-            fn.apply(this, args);
-            sync = false;
-        });
-    }
+  // add compatibility with $.ajax
+  // always execute callback for success and error
+  if (options && options.complete) options.complete(resp);
 
-    async.ensureAsync = ensureAsync;
+  return syncDfd && syncDfd.promise();
+};
 
-    async.constant = _restParam(function(values) {
-        var args = [null].concat(values);
-        return function (callback) {
-            return callback.apply(this, args);
-        };
-    });
+Backbone.ajaxSync = Backbone.sync;
 
-    async.wrapSync =
-    async.asyncify = function asyncify(func) {
-        return _restParam(function (args) {
-            var callback = args.pop();
-            var result;
-            try {
-                result = func.apply(this, args);
-            } catch (e) {
-                return callback(e);
-            }
-            // if result is Promise object
-            if (_isObject(result) && typeof result.then === "function") {
-                result.then(function(value) {
-                    callback(null, value);
-                })["catch"](function(err) {
-                    callback(err.message ? err : new Error(err));
-                });
-            } else {
-                callback(null, result);
-            }
-        });
-    };
+Backbone.getSyncMethod = function(model, options) {
+  var forceAjaxSync = options && options.ajaxSync;
 
-    // Node.js
-    if (typeof module === 'object' && module.exports) {
-        module.exports = async;
-    }
-    // AMD / RequireJS
-    else if (typeof define === 'function' && define.amd) {
-        define([], function () {
-            return async;
-        });
-    }
-    // included directly via <script> tag
-    else {
-        root.async = async;
-    }
+  if(!forceAjaxSync && (result(model, 'localStorage') || result(model.collection, 'localStorage'))) {
+    return Backbone.localSync;
+  }
 
-}());
+  return Backbone.ajaxSync;
+};
 
-}).call(this,require('_process'),typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"_process":37}],2:[function(require,module,exports){
+// Override 'Backbone.sync' to default to localSync,
+// the original 'Backbone.sync' is still available in 'Backbone.ajaxSync'
+Backbone.sync = function(method, model, options) {
+  return Backbone.getSyncMethod(model, options).apply(this, [method, model, options]);
+};
+
+return Backbone.LocalStorage;
+}));
+
+},{"backbone":2}],2:[function(require,module,exports){
 (function (global){
 //     Backbone.js 1.2.2
 
@@ -14477,7 +13511,7 @@ function amdefine(module, requireFn) {
 module.exports = amdefine;
 
 }).call(this,require('_process'),"/node_modules/know-your-http-well/node_modules/amdefine/amdefine.js")
-},{"_process":37,"path":36}],10:[function(require,module,exports){
+},{"_process":40,"path":39}],10:[function(require,module,exports){
 /**
  * monologue.js - EventEmitter replacement with AMQP-style bindings and other advanced features. Compatible with postal.js's API.
  * Author: Jim Cowart (http://ifandelse.com)
@@ -41419,37 +40453,41 @@ e,f,k){k=k||w;f=f||{};if(2>a)throw Error("Your version of jQuery.tmpl is too old
 a+" })()) }}"};this.addTemplate=function(a,b){w.write("<script type='text/html' id='"+a+"'>"+b+"\x3c/script>")};0<a&&(u.tmpl.tag.ko_code={open:"__.push($1 || '');"},u.tmpl.tag.ko_with={open:"with($1) {",close:"} "})};a.Ya.prototype=new a.J;var b=new a.Ya;0<b.uc&&a.hb(b);a.b("jqueryTmplTemplateEngine",a.Ya)})()})})();})();
 
 },{}],18:[function(require,module,exports){
+/**
+ * @fileOverview requires base components, and initializes application
+ * @author Josh Bowling
+ * @version 0.0.1
+ */
 
-var enterKey, $, backbone, ko, async;
+var $, backbone, ko;
 
 $ = window.$ = require('../bower/jquery/dist/jquery.js');
 ko = require('../bower/knockout/dist/knockout.js');
+backbone = require('backbone');
+// set the backbone jQuery value
+backbone.$ = $;
+
+// require all knockout components
 require('./components/appError');
 require('./components/verses');
 require('./components/verse');
 require('./components/bookNavigator');
 require('./components/chaptersNavigator');
 require('./components/versesInput');
-backbone = require('backbone');
-backbone.$ = $;
-async = require('async');
 
-// require('../bower/bootstrap/dist/js/bootstrap.min.js');
+// require all binding handlers
 ko.bindingHandlers.enterKey = require('./bindingHandlers/enterKey.js');
 ko.bindingHandlers.showFocus = require('./bindingHandlers/showFocus.js');
 require('./components/customLoader.js');
-// this would be abstracted by monologue
+
+// run setup
 (function ($) {
     var $d, init, AppViewModel;
     $d = $(document);
     AppViewModel = function() {
-        var self, bookWorker;
+        var self;
         self = this;
-        self.bookWorker = require('./observers/Book');
-        bookWorker = self.bookWorker().retrieve();
-        bookWorker.subscriber('#error', function(data, env) {
-            console.log('error', arguments);
-        });
+        self.$ = $;
     };
     init = function () {
         var appViewModel;
@@ -41459,7 +40497,12 @@ require('./components/customLoader.js');
     $d.ready(init);
 })($);
 
-},{"../bower/jquery/dist/jquery.js":15,"../bower/knockout/dist/knockout.js":17,"./bindingHandlers/enterKey.js":19,"./bindingHandlers/showFocus.js":20,"./components/appError":23,"./components/bookNavigator":24,"./components/chaptersNavigator":25,"./components/customLoader.js":26,"./components/verse":27,"./components/verses":28,"./components/versesInput":29,"./observers/Book":33,"async":1,"backbone":2}],19:[function(require,module,exports){
+},{"../bower/jquery/dist/jquery.js":15,"../bower/knockout/dist/knockout.js":17,"./bindingHandlers/enterKey.js":19,"./bindingHandlers/showFocus.js":20,"./components/appError":25,"./components/bookNavigator":26,"./components/chaptersNavigator":27,"./components/customLoader.js":28,"./components/verse":29,"./components/verses":30,"./components/versesInput":31,"backbone":2}],19:[function(require,module,exports){
+/**
+ * @fileOverview binding handler for enterkey to pass value from input back to callback
+ * @author Josh Bowling
+ * @version 0.0.1
+ */
 
 enterKey = {
     init: function (element, valueAccessor, allBindingsAccessor, viewModel) {
@@ -41471,7 +40514,10 @@ enterKey = {
             target = event.target;
             if (keyCode === 13) {
                 allBindings.enterKey.call(viewModel, viewModel, $element.val(), target);
-                // a hack for whatever reason, the observable isn't blanking this value out
+                // a hack for whatever reason, the observable isn't clearing this value out
+                /**
+                * @todo -- investigate why the observable isn't clearing
+                */
                 $element.val('');
                 return false;
             }
@@ -41482,6 +40528,11 @@ enterKey = {
 
 module.exports = enterKey;
 },{}],20:[function(require,module,exports){
+/**
+ * @fileOverview callback when focus is gained/lost on the element
+ * @author Josh Bowling
+ * @version 0.0.1
+ */
 
 showFocus = {
     init: function (element, valueAccessor, allBindingsAccessor, viewModel) {
@@ -41490,7 +40541,6 @@ showFocus = {
         $element = $(element);
         $element.focusin(function (event) {
                 allBindings.showFocus.call(viewModel, true);
-                // a hack for whatever reason, the observable isn't blanking this value out
                 $element.focusout(function() {
                     allBindings.showFocus.call(viewModel, false);
                 })
@@ -41501,13 +40551,54 @@ showFocus = {
 
 module.exports = showFocus;
 },{}],21:[function(require,module,exports){
-var Chapter, _, backbone, ChapterModel;
+/**
+ * @fileOverview Backbone Book collection
+ * @author Josh Bowling
+ * @version 0.0.1
+ */
+
+var Book, _, $, backbone, BookModel;
+
+_ = require('underscore');
+backbone = require('backbone');
+BookModel = require('../models/Book.js');
+console.log('bmodel',BookModel);
+backbone.localstorage = require('backbone.localstorage');
+Book = backbone.Collection.extend({
+	model: BookModel,
+	localStorage: new backbone.localstorage('bookofyou'),
+	initialize: function() {
+		var self;
+		
+		self = this;
+		self.fetch(
+			{
+				success: function() {
+					console.log('succes', arguments);
+					console.log(self.first().get('name'));
+				}, error: function() {
+					console.log('error', arguments);
+				}
+			}
+		);
+	}
+});
+
+module.exports = Book;
+},{"../models/Book.js":32,"backbone":2,"backbone.localstorage":1,"underscore":14}],22:[function(require,module,exports){
+/**
+ * @fileOverview Backbone chapter collection
+ * @author Josh Bowling
+ * @version 0.0.1
+ */
+
+var Chapter, _, backbone, ChapterModel, VerseCollection;
 
 _ = require('underscore');
 
 backbone = require('backbone');
 
-ChapterModel = require('../models/Chapter');
+ChapterModel = require('../models/Chapter.js');
 
 Chapter = backbone.Collection.extend({
 	model: ChapterModel,
@@ -41516,7 +40607,6 @@ Chapter = backbone.Collection.extend({
 		
 		self = this;
 		_.bindAll(self, 'addChapter');
-
 	},
 	addChapter: function() {
 		var self, chapNum, chap;
@@ -41530,36 +40620,126 @@ Chapter = backbone.Collection.extend({
 });
 
 module.exports = Chapter;
+},{"../models/Chapter.js":33,"backbone":2,"underscore":14}],23:[function(require,module,exports){
+/**
+ * @fileOverview backbone verse collection
+ * @author Josh Bowling
+ * @version 0.0.1
+ */
 
-},{"../models/Chapter":31,"backbone":2,"underscore":14}],22:[function(require,module,exports){
 var Verse, backbone, _, VerseModel;
 
 _ = require('underscore');
 
 backbone = require('backbone');
 
-VerseModel = require('../models/Verse');
+VerseModel = require('../models/').Verse;
 
 Verse = backbone.Collection.extend({
 	model: VerseModel,
-	initialize: function(channel) {
+	initialize: function(verses) {
 		var self = this;
 
-		self.channel = channel;
-		_.bindAll(self, 'addVerse');
+		_.bindAll(self, 'addVerse', 'addVerses');
+		self.addVerses(verses);
 	},
-	addVerse: function(verseText) {
+	addVerse: function(verseText, num) {
 		var self, verse;
-		console.log(verseText);
+
 		self = this;
-		verse = new self.model(self.models.length + 1, verseText);
+		if(!_.isNumber(num)) {
+			num = self.models.length + 1;
+		}
+		verse = new self.model(num, verseText);
  		self.add(verse);
 		return verse;
+	},
+	addVerses: function(verses) {
+		var self, _addVerse;
+
+		self = this;
+		_addVerse = function(verse, versei) {
+		 	self.addVerse(verse, versei);
+		};
+		// if its just a string invoke addVerse
+		if(_.isString(verses)) {
+			self.addVerse(verses);
+			return true;
+		} 
+		// if this isn't an array then ignore
+		if(!_.isArray(verses) || _.isEmpty(verses)) {
+			return false;
+		}
+		// add them individually so we can check each of them
+		_.each(verses, _addVerse);
+		return true;
 	}
+
 });
 
 module.exports = Verse;
-},{"../models/Verse":32,"backbone":2,"underscore":14}],23:[function(require,module,exports){
+},{"../models/":35,"backbone":2,"underscore":14}],24:[function(require,module,exports){
+var subscriptions;
+
+subscriptions = {
+	book: {
+		crud: {
+			any: '#.crud.#',
+			delete: {
+				done: 'book.crud.delete.done'
+			},
+			create: {
+				done: 'book.crud.create.done'
+			}
+		},
+		name: {
+			set: 'book.name.set',
+			setError: 'book.name.set.error'
+		},
+		chapters: {
+			crud: {
+				create: {
+					done: 'chapters.crud.create.done',
+
+				}
+			},
+			chapter: {
+				crud: {},
+				set: 'book.chapters.chapter.set',
+				setError: 'book.chapters.chapter.set.error',
+				verses: {
+					crud: {
+						create: {
+							error: 'book.chapters.chapter.verse.crud.create.error',
+							done:'book.chapters.chapter.verse.crud.create.done'
+						}
+					},
+					verse: {
+						crud: {
+							any: {
+								done: 'book.chapters.chapter.verses.verse.crud.*.done'
+							},
+							create: {
+								error: 'book.chapters.chapter.verses.verse.crud.create.error',
+								errorNoVerse: 'book.chapters.chapter.verses.verse.crud.create.error.noVerse',
+								done:'book.chapters.chapter.verse.crud.create.done'
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+};
+
+module.exports = subscriptions;
+},{}],25:[function(require,module,exports){
+/**
+ * @fileOverview component responsible for showing any error published throughout the app
+ * @author Josh Bowling
+ * @version 0.0.1
+ */
+
 var ko;
 
 ko = require('../../bower/knockout/dist/knockout.js');
@@ -41567,12 +40747,11 @@ ko = require('../../bower/knockout/dist/knockout.js');
 ko.components.register('app-error', {
 	viewModel: function(params) {
 		var self;
+
 		self = this;
 		self.bookWorker = require('../observers/Book.js')().retrieve();
-		
 		// subscriptions
 		self.bookWorker.subscriber('#.error.#', function(data, env) {
-			console.log(data);
 			self.hasError(true);
 		});
 
@@ -41587,21 +40766,31 @@ ko.components.register('app-error', {
 	},
 	template: { fromUrl: 'html/app-error-1.html'}
 });
-
+/** 
+* @todo decide whether components and binding handlers should be exported as objects then bound to ko during initialization
+*/
 module.exports = {};
-},{"../../bower/knockout/dist/knockout.js":17,"../observers/Book.js":33}],24:[function(require,module,exports){
-var ko;
+},{"../../bower/knockout/dist/knockout.js":17,"../observers/Book.js":36}],26:[function(require,module,exports){
+/**
+ * @fileOverview navigation for creating book, containing chapter navigation
+ * @author Josh Bowling
+ * @version 0.0.1
+ */
+
+
+var ko, subscriptions;
 
 ko = require('../../bower/knockout/dist/knockout.js');
+subscriptions = require('../collections/subscriptions');
 
 ko.components.register('book-navigator', {
 	viewModel: function(params) {
-		var self, bookCreator, _subscriptions, _onNameSet;
+		var self;
+
 		self = this;
-		self.chapterNavigator = {};
-		bookWorker = params.bookWorker();
-		self.bookWorker = bookWorker.retrieve();
+		self.bookWorker = require('../observers/Book.js')().retrieve();
 		// data declarations
+		self.chapterNavigator = {};
 		self.showMe = ko.observable(false);
 		self.bookTitle = ko.observable('');
 		self.hasBook = ko.pureComputed(function() {
@@ -41611,92 +40800,95 @@ ko.components.register('book-navigator', {
 		self.chapters = ko.pureComputed(function() {
 			// default result for initial pop
 			var result = [];
+
 			if(self.book() && self.book()['attributes']) {
 				result = self.book().attributes.chapters().toJSON();
 			}
+
 			return result;
 		});
 		self.subHeading = ko.pureComputed(function() {
-			return 'Chapter ' + bookWorker.retrieve().currentChapter();
+			return 'Chapter ' + self.bookWorker.retrieve().currentChapter();
 		});
-		// to hold subscription strings, handlers, subscription object, and data
-		_subscriptions = {
-			chapters: {
-				id: 'chapter.crud.#',
-				handler: function(data, env) {
-				},
-				subscription: null,
-				data:null
-			}
-		};
-		self.onNameSet = self.bookWorker.subscriber('book.name.set', function(data, env) {
-			_onNameSet(data, env);
-		});
-
-		//computed values
 		self.createEnabled = ko.pureComputed(function() {
 			var result;
+
 			result = self.bookTitle() != '' && !self.hasBook();
+
 			return result;
 		});
+
+		// subscriptions
+		/**
+		 a one time subscription at present
+		 * @todo if book name changes are added, then then will need to  remove unsubscribe()
+		*/
+		self.onNameSet = self.bookWorker.subscriber(subscriptions.book.name.set, function(data, env) {
+			self.showMe(true);
+			self.onNameSet.unsubscribe();
+		});
+
 		// behaviors
 		self.createBook = function(name) {
-			var createSubscription = bookWorker.on('book.name.set', function(data, env) {
-				createSubscription.unsubscribe();
+			var createSubscription;
+
+			createSubscription = self.bookWorker.subscriber(subscriptions.book.name.set, function(data, env) {
+				var chapterSubscription;
 				self.book(data.context);
-				_subscriptions.chapters.subscription = 
-					self.bookWorker.subscriber(_subscriptions.chapters.id, _subscriptions.chapters.handler);
+				createSubscription.unsubscribe();
 			});
 			self.bookWorker.setName(self.bookTitle());
 		};
 		self.createChapter = function() {
 			var result;
+			
 			result = self.bookWorker.addChapter();
+			
 			return result;
 		};
-		// internal
-		_onNameSet = function(data, env) {
-			self.showMe(true);
-			self.onNameSet.unsubscribe();
-		};
 
-
-		//dispose
-		self.dispose = function() {
-			self.book.del();
-		};
 	},
 	template: { fromUrl: 'html/bookNavigator-1.html' }
 });
 
 module.exports = {};
-},{"../../bower/knockout/dist/knockout.js":17}],25:[function(require,module,exports){
-var ko;
+},{"../../bower/knockout/dist/knockout.js":17,"../collections/subscriptions":24,"../observers/Book.js":36}],27:[function(require,module,exports){
+/**
+ * @fileOverview navigation for creating and selecting chapters
+ * @author Josh Bowling
+ * @version 0.0.1
+ */
+
+
+var ko, subscriptions;
 
 ko = require('../../bower/knockout/dist/knockout.js');
+subscriptions = require('../collections/subscriptions');
 
 ko.components.register('chapters-navigator', {
 	viewModel: { 
 		createViewModel: function(params) {
-			var self, _selectedChapter;
+			var self;
 			// will be used to push data to/fro computed value
-			_selectedChapter = 0;
 			self = this;
 			self.bookWorker = require('../observers/Book.js')().retrieve();
+
+			// data declarations
 			self.navigateChapters = ko.observableArray(self.bookWorker.attributes.chapters().toJSON());
-			self.bookWorker.subscriber('chapters.crud.create.done', function(data, env) {
-				console.log(arguments);
+			self.selectedChapter = self.bookWorker.currentChapter;
+
+			// behaviors
+			self.setSelectedChapter = function(data) {
+				self.selectedChapter(data.num);
+			};
+
+			// subscriptions
+			self.bookWorker.subscriber(subscriptions.book.chapters.crud.create.done, function(data, env) {
+				console.log(self.bookWorker.currentChapterNum());
 				if(data.context) {
 					self.navigateChapters(data.context.toJSON());
 				}
 			});
-
-			// data declarations
-
-			self.selectedChapter = self.bookWorker.currentChapter;
-			self.setSelectedChapter = function(data) {
-				self.selectedChapter(data.num);
-			};
 
 			return self;
 		}
@@ -41705,13 +40897,18 @@ ko.components.register('chapters-navigator', {
 });
 
 module.exports = {};
-},{"../../bower/knockout/dist/knockout.js":17,"../observers/Book.js":33}],26:[function(require,module,exports){
-var ko;
+},{"../../bower/knockout/dist/knockout.js":17,"../collections/subscriptions":24,"../observers/Book.js":36}],28:[function(require,module,exports){
+/**
+ * @fileOverview taken from knockout site for implementing ajax-loading functionality for templates
+ * @author Josh Bowling
+ * @version 0.0.1
+ */
+
+var ko, templateFromUrlLoader;
 
 ko = require('../../bower/knockout/dist/knockout.js');
 
-
-var templateFromUrlLoader = {
+templateFromUrlLoader = {
     loadTemplate: function(name, templateConfig, callback) {
         if (templateConfig.fromUrl) {
             // Uses jQuery's ajax facility to load the markup from a file
@@ -41731,11 +40928,19 @@ var templateFromUrlLoader = {
 
 // Register it
 ko.components.loaders.unshift(templateFromUrlLoader);
-},{"../../bower/knockout/dist/knockout.js":17}],27:[function(require,module,exports){
+
+module.exports = {};
+},{"../../bower/knockout/dist/knockout.js":17}],29:[function(require,module,exports){
+
+/**
+ * @fileOverview displays an individual verse
+ * @author Josh Bowling
+ * @version 0.0.1
+ */
+
 var ko;
 
 ko = require('../../bower/knockout/dist/knockout.js');
-
 ko.components.register('verse', {
 	viewModel: function(params) {
 		var self;
@@ -41748,112 +40953,132 @@ ko.components.register('verse', {
 });
 
 module.exports = {};
-},{"../../bower/knockout/dist/knockout.js":17}],28:[function(require,module,exports){
-var ko, _;
+},{"../../bower/knockout/dist/knockout.js":17}],30:[function(require,module,exports){
+/**
+ * @fileOverview displays all verses as verse components in chapter
+ * @author Josh Bowling
+ * @version 0.0.1
+ */
+
+var ko, subscriptions, _;
 
 ko = require('../../bower/knockout/dist/knockout.js');
-
 _ = require('underscore');
+
+subscriptions = require('../collections/subscriptions');
 
 ko.components.register('verses', {
 	viewModel: function(params) {
-		var self, _verses, _onIncomingVerse, _onNameSet;
+		var self, _onIncomingVerse, _onNameSet;
 
 		self = this;
 		self.bookWorker = require('../observers/Book.js')().retrieve();
-		verses = [];
+		// data declarations
 		self.verses = ko.observableArray();
-		self.currentChapter = ko.observable(1);
-		self.chapterHeading = ko.computed(function() { 
-			return "Chapter " + self.currentChapter();
+		self.chapterHeading = ko.pureComputed(function() { 
+			return "Chapter " + self.currentChapter().get('num');
 		});
+
+		self.currentChapter = ko.observable(self.bookWorker.currentChapter());
 		self.showMe = ko.observable(false);
+
 		// subscriptions
-		self.bookWorker.subscriber('chapters.chapter.set', function(data, env) {
-			data.context = data.result.get('verses');
-			self.currentChapter(data.result.get('num'));
+		self.bookWorker.subscriber(subscriptions.book.chapters.chapter.set, function(data, env) {
+			self.currentChapter(data.result);
+			self.verses(data.result.get('verses').toJSON());
+		});
+
+		self.bookWorker.subscriber(subscriptions.book.chapters.chapter.verses.verse.crud.create.done, function(data, env) { 
 			_onIncomingVerse(data, env);
 		});
-		self.bookWorker.subscriber('chapters.chapter.verse.crud.*.done', function(data, env) { 
-			_onIncomingVerse(data, env);
-		});
-		self.onNameSet = self.bookWorker.subscriber('book.name.set', function(data, env) {
+		self.onNameSet = self.bookWorker.subscriber(subscriptions.book.name.set, function(data, env) {
 			_onNameSet(data, env);
 		});
 		// behaviors
 		// internal
 		_onIncomingVerse = function(data, env) {
-			var verseData;
-			verseData = data.context.toJSON();
-			self.verses(verseData);
+			self.verses(data.context.toJSON());
 		};
 		_onNameSet = function(data, env) {
 			self.showMe(true);
 			self.onNameSet.unsubscribe();
 		};
-		//external
 	},
 	template: { fromUrl: 'html/verses-1.html'}
 });
 
 module.exports = {};
-},{"../../bower/knockout/dist/knockout.js":17,"../observers/Book.js":33,"underscore":14}],29:[function(require,module,exports){
-var ko;
+},{"../../bower/knockout/dist/knockout.js":17,"../collections/subscriptions":24,"../observers/Book.js":36,"underscore":14}],31:[function(require,module,exports){
+/**
+ * @fileOverview component for authoring verses into a chapter
+ * @author Josh Bowling
+ * @version 0.0.1
+ */
+
+var ko, subscriptions;
 
 ko = require('../../bower/knockout/dist/knockout.js');
+subscriptions = require('../collections/subscriptions');
 
 ko.components.register('verses-input', {
 	viewModel: function(params) {
-			var self, _fullText, _onNameSet;
-			self = this;
-			// data declarations
-			self.newVerse = ko.observable('');
-			self.bookWorker = require('../observers/Book.js')().retrieve();
-			self.currentChapter = self.bookWorker.currentChapter;
-			self.hasChapter = ko.pureComputed(function() {
-				return self.currentChapter() > 0;
-			});
-			self.showMe = ko.observable(false);
-			self.writingVerse = ko.observable(false);
-			// subscriptions
-			self.bookWorker.subscriber('chapters.chapter.verse.crud.create.done', function(data, env) {
-				self.newVerse = ko.observable('test');
-			});
-			self.onNameSet = self.bookWorker.subscriber('book.name.set', function(data, env) {
-				_onNameSet(data, env);
-			});
+		var self;
 
-			// behaviors
-			self.addVerse = function(viewModel, val, target) {
-				self.bookWorker.addVerse(val);
-			};
-			// internal
-			_onNameSet = function(data, env) {
-				self.showMe(true);
-				self.onNameSet.unsubscribe();
-			};
+		self = this;
+		// data declarations
+		self.newVerse = ko.observable('');
+		self.bookWorker = require('../observers/Book.js')().retrieve();
+		self.currentChapter = self.bookWorker.currentChapter;
+		self.hasChapter = ko.pureComputed(function() {
+			return self.currentChapter() > 0;
+		});
+		self.showMe = ko.observable(false);
+		self.writingVerse = ko.observable(false);
 
-			return self;
+		// subscriptions
+		self.bookWorker.subscriber(subscriptions.book.chapters.chapter.verses.verse.crud.create.done, function(data, env) {
+			self.newVerse = ko.observable('test');
+		});
+		self.onNameSet = self.bookWorker.subscriber(subscriptions.book.name.set, function(data, env) {
+			self.showMe(true);
+			self.onNameSet.unsubscribe();
+		});
+
+		// behaviors
+		self.addVerse = function(viewModel, val, target) {
+			self.bookWorker.addVerse(val);
+		};
+
+		return self;
 	},
 	template: { fromUrl: 'html/verseInput-1.html'}
 });
 
 module.exports = {};
-},{"../../bower/knockout/dist/knockout.js":17,"../observers/Book.js":33}],30:[function(require,module,exports){
+},{"../../bower/knockout/dist/knockout.js":17,"../collections/subscriptions":24,"../observers/Book.js":36}],32:[function(require,module,exports){
+/**
+ * @fileOverview backbone Book model -- contains the chapter collections as attribute
+ * @author Josh Bowling
+ * @version 0.0.1
+ */
+
 var backbone, Book, Chapters, _;
 
 _ = require('underscore');
-
 backbone = require('backbone');
 
 Chapters = require('../collections/Chapter');
-
 Book = backbone.Model.extend({
     defaults: {
         name:'new Book',
         chapters: new Chapters()
     },
-    initialize: function (name, chapters) {
+    idAttribute: 'name',
+    /**
+    * @param {string} name
+    * @todo add chapters as array of chapters to fill the chapters collection
+    */
+    initialize: function (name) {
         var self;
 
         self = this;
@@ -41874,11 +41099,16 @@ Book = backbone.Model.extend({
 
 module.exports = Book;
 
-},{"../collections/Chapter":21,"backbone":2,"underscore":14}],31:[function(require,module,exports){
+},{"../collections/Chapter":22,"backbone":2,"underscore":14}],33:[function(require,module,exports){
+/**
+ * @fileOverview backbone Chapter model -- contains the verse collections as attribute
+ * @author Josh Bowling
+ * @version 0.0.1
+ */
+
 var _, ChapterModel, backbone, VerseCollection;
 
 _ = require('underscore');
-
 backbone = require('backbone');
 
 VerseCollection = require('../collections/Verse');
@@ -41890,25 +41120,38 @@ ChapterModel = backbone.Model.extend({
 	},
 	initialize: function(num, verseCollection) {
 		var self;
+
 		self = this;
+		_.bindAll(self, 'addVerse');
+		/**
+		* @todo make num conditional if there's a collection bound to model because we could get chapter num by use of collecciton length 
+		*/
 		self.set('num', num);
-		if(_.isObject(verseCollection) && _.isFunction(verseCollection['add'])) {
-			self.set('verses', verseCollection);
-		} else {
-			self.set('verses', new VerseCollection());
-		}
+		self.set('verses', new VerseCollection());
+		self.get('verses').addVerses(verseCollection);
+		// conditionally set the verses value
+
 	},
 	addVerse: function(verseText) {
 		var self, verse;
+
 		self = this;
 		verse = self.get('verses').addVerse(verseText);
+
 		return verse;
 	}
 
 });
 
 module.exports = ChapterModel;
-},{"../collections/Verse":22,"backbone":2,"underscore":14}],32:[function(require,module,exports){
+},{"../collections/Verse":23,"backbone":2,"underscore":14}],34:[function(require,module,exports){
+/**
+ * @fileOverview backbone Verse model, contained in Chapter model
+ * @author Josh Bowling
+ * @version 0.0.1
+ */
+
+
 var VerseModel, backbone;
 
 backbone = require('backbone');
@@ -41918,16 +41161,33 @@ VerseModel = backbone.Model.extend({
 		num:0,
 		text:'new verse'
 	},
+	idAttribute:'num',
 	initialize: function(num, text) {
 		var self = this;
+		
 		self.set('num', num);
 		self.set('text', text);
 	}
 });
 
 module.exports = VerseModel;
-},{"backbone":2}],33:[function(require,module,exports){
-var BookModel, monologue, Worker, worker,_ ,Response, ko, Worker, util, tmplEmission, STATUS;
+},{"backbone":2}],35:[function(require,module,exports){
+// wrapped in the event I need to pre-process
+var models;
+models = {
+	Book: require('./Book.js'),
+	Chapter: require('./Chapter.js'),
+	Verse: require('./Verse.js')
+};
+
+module.exports = models;
+},{"./Book.js":32,"./Chapter.js":33,"./Verse.js":34}],36:[function(require,module,exports){
+/**
+ * @fileOverview Observer, i.e. the monologue abstraction between the knockout view models and backbone models/colleccitons
+ * @author Josh Bowling
+ * @version 0.0.1
+ */
+var BookCollection, BookModel, monologue,_ , ko, Response, subscriptions, Worker, worker, util;
 
 util = require('util');
 
@@ -41935,25 +41195,12 @@ _ = require('underscore');
 
 ko = require('../../bower/knockout/dist/knockout.debug.js');
 
-STATUS = {
-	'start':0,
-	'complete':1,
-	'error':2,
-	'invalid':3
-};
+monologue = require('monologue.js');
 
 Response = require('../utility/ResponseObject.js');
-
 BookModel = require('../models/Book');
-
-tmplEmission = function(model, property, action, state) {
-	var tmpl, result;
-	
-	tmpl = '%s.%s.%s.%s';
-	result = util.format(tmpl, model, property, action, state);
-
-	return result;
-};
+BookCollection = require('../collections/Book');
+subscriptions = require('../collections/subscriptions');
 
 Worker = function(name) {
 	var self;
@@ -41961,23 +41208,33 @@ Worker = function(name) {
 	self.name = name;	
 };
 
-monologue = require('monologue.js');
-///CRUD TYPES
-
 Worker.prototype = monologue.prototype;
 
 
 Worker.prototype.create = function(name) {
-	var self, book, workerFunctions, model, WorkerPropertyObservables;
-	// model is the intercept value for abstracting the Factory out
+	var self, book, bookCollection, workerFunctions, workerPropertyObservables,
+		_currentChapterNum;
+
+	_currentChapterNum = 1;
+
 	self = this;
-	// for empty chapters
-	book = new BookModel(name, null);
-	window.book = book;
-	// assumes model/self since its operating in same context
-	WorkerPropertyObservables = function() {
-		var keys, workerProperties, currentKey;
-		// pull this info from model attributes
+	// this the backbone model that contains the name, chapters, verses
+	bookCollection = new BookCollection();
+	if(bookCollection.models.length === 0) {
+		book = new BookModel(name, null);
+		bookCollection.add(book);
+	} else {
+		book = bookCollection.first();
+	}
+/** iteratively creates computed observables from backbone model attributes
+	* @todo pull keys value from the model. model attributes is pulling back more than name/chapters at present
+	* @todo investigate where this code is actually being used
+*/
+	workerPropertyObservables = function() {
+		// assumes model/self since its operating in same context
+		var currentKey, keys, workerProperties;
+		/* pull this info from model attributes
+		*/
 		keys = ['name', 'chapters'];
 		workerProperties = {};
 		_.each(keys, function(key, keyi) {
@@ -41985,14 +41242,14 @@ Worker.prototype.create = function(name) {
 				{
 					read: function() {
 						var result;
-						result = model.get(key);
+						result = book.get(key);
 						return result;
 					},
 					write: function(val) {
 						var result;
 						// will use to verify validation, etc
 						result = true;
-						model.set(key);
+						model.set(key, val);
 						return result;
 					}
 				}
@@ -42000,78 +41257,93 @@ Worker.prototype.create = function(name) {
 		});
 		return workerProperties;
 	};
-	// set worker to book
-	model = book;
-	// worker functions create an abstraction layer between model and returned object
+	/** worker functions create an abstraction layer between model and returned object. this is the object that's given to the knockout side of the app 
+	* @todo workerFunctions may need to be bifurcated because the observables contained herein aren't worker functions
+	*/
 	workerFunctions = {
+		/* currently not implemented */
 		delete: function() {
-			self.emit('crud.delete.done', new Response(null, 200, null));
+			self.emit(subscriptions.book.crud.delete.done, new Response(null, 200, null));
 		},
 		addChapter: function() {
 			var chapters, newChapter;
+
 			chapters = book.get('chapters');
 			newChapter = new chapters.model(chapters.models.length + 1);
 			chapters.add(newChapter);
-			console.log(newChapter);
-			self.emit('chapters.crud.create.done', new Response(newChapter, 200, book.get('chapters')));
+			self.emit(subscriptions.book.chapters.crud.create.done, new Response(newChapter, 200, book.get('chapters')));
 
 			return newChapter;
 		},
-		setCurrentChapter: function(num) {
-			var chapter, chapters;
-			chapter = book.get('chapters').findWhere({num: num});
-			chapters = book.get('chapters');
-			workerFunctions.currentChapter(num);
-			self.emit('chapters.chapter.set', new Response(chapter, 200, chapters));
-		},
+		/** Set the book's name
+		* @param {string} name
+		*/
 		setName: function(name) {
-			console.log(name);
 			if(!name || !_.isString(name)) {
-				return self.emit('book.name.set.error', new Response(null, 404, null));
+				return self.emit(subscriptions.book.name.setError, new Response(null, 500, null));
 			}
-			book.set('name', name);
-			self.emit('book.name.set', new Response(name, 200, book));
+			book.set('name', name, subscriptions.book.name.set);
+
+			self.emit(subscriptions.book.name.set, new Response(name, 200, book));
 		},
-		currentChapter: ko.observable(0),
-		currentChapterObject: ko.pureComputed(function() {
-			return book.get('chapters').findWhere({num: workerFunctions.currentChapter()});
-		}),
-		isCreated: ko.observable(false),
+		/** Add a verse to currently selected chapter
+		* @param {string} verseText
+		*/		
 		addVerse: function(verseText) {
 			var chapters, chapter, verses, verse, num;
-			chapter = self.workerFunctions.currentChapterObject();
+
+			chapter = book.get('chapters').findWhere({num:_currentChapterNum});
 			if(!chapter) {
-//				chapter = book.addChapter();
-//				console.log('noChapter', book.get('chapters').toJSON());
-				return self.emit('chapters.chapter.verse.crud.create.error', new Response(null, 404, null));
+				return self.emit(subscriptions.book.chapters.chapter.verses.verse.crud.create.error, new Response(null, 500, null));
 			}
 			verses = chapter.get('verses');
-
 			if(!_.isString(verseText) || verseText === '') {
-				return self.emit('chapters.chapter.verse.crud.create.error.noVerse', new Response(null, 404, null));
+				return self.emit(subscriptions.book.chapters.chapter.verses.verse.crud.create.errorNoVerse, new Response(null, 400, null));
 			}
+
 			verse = chapter.addVerse(verseText);
-			self.emit('chapters.chapter.verse.crud.create.done', new Response(verse, 200, verses));
+			self.emit(subscriptions.book.chapters.chapter.verses.verse.crud.create.done, new Response(verse, 200, verses));
 		},
-		attributes: WorkerPropertyObservables(),
+		// model.attribute-based computed-s
+		attributes: workerPropertyObservables(),
+		// abstraction of monologue for use in view models
 		subscriber: _.bind(self.on, self),
-		publisher: _.bind(self.emit, self)
+		// abstraction of monologue for use in view models
+		publisher: _.bind(self.emit, self),
+		currentChapter: ko.pureComputed({
+			read: function() {
+				return book.get('chapters').findWhere({num: _currentChapterNum});
+			},
+			write: function(val) {
+				var chapter, _oldChapterNum;
+				chapter = book.get('chapters').findWhere({num: val});
+				if(!chapter) {
+					return self.emit(subscriptions.book.chapters.chapter.setError, new Response(null, 404, null));
+				};
+
+				_currentChapterNum = val;
+				console.log('gd num from pubs', chapter.get('num'));
+				self.emit(subscriptions.book.chapters.chapter.set, new Response(chapter, 200, {}));	
+			}
+		}),
+		currentChapterNum: ko.pureComputed(function() {
+			return _currentChapterNum;
+		}),
+		toJSON: function() {
+			return book.toJSON();
+		}
 	};
 	self.workerFunctions = workerFunctions;
-	// emit the change to worker who will propogate the rest
-	self.workerFunctions.currentChapter.subscribe(function(val) {
-		self.workerFunctions.setCurrentChapter(val);
-	});
-	self.emit('create.done', { book: workerFunctions });
+	// emit the workerFunctions to the listeners
+	self.emit(subscriptions.book.crud.create.done, {book: workerFunctions});
 	// change the chapter from 0 to 1
-	self.workerFunctions.setCurrentChapter(1);
 	return self;
 };
-
+/** used by knockout side to retrieve worker if the create.done event has already fired */
 Worker.prototype.retrieve = function() {
 	return worker.workerFunctions;
 };
-
+// create the worker if there's not one alrady (singleton)
 module.exports = function() { 
 	if(!worker){
 		worker = new Worker();
@@ -42081,7 +41353,14 @@ module.exports = function() {
 };
 
 
-},{"../../bower/knockout/dist/knockout.debug.js":16,"../models/Book":30,"../utility/ResponseObject.js":34,"monologue.js":10,"underscore":14,"util":39}],34:[function(require,module,exports){
+},{"../../bower/knockout/dist/knockout.debug.js":16,"../collections/Book":21,"../collections/subscriptions":24,"../models/Book":32,"../utility/ResponseObject.js":37,"monologue.js":10,"underscore":14,"util":42}],37:[function(require,module,exports){
+/**
+ * @fileOverview Response object used when publishing data
+ * @author Josh Bowling
+ * @version 0.0.1
+ */
+
+
 var ResponseObject, httpWell, statusWell, phraseWell;
 
 httpWell = require('know-your-http-well');
@@ -42097,7 +41376,7 @@ ResponseObject = function(result, code, context) {
 };
 
 module.exports = ResponseObject;
-},{"know-your-http-well":4}],35:[function(require,module,exports){
+},{"know-your-http-well":4}],38:[function(require,module,exports){
 if (typeof Object.create === 'function') {
   // implementation from standard node.js 'util' module
   module.exports = function inherits(ctor, superCtor) {
@@ -42122,7 +41401,7 @@ if (typeof Object.create === 'function') {
   }
 }
 
-},{}],36:[function(require,module,exports){
+},{}],39:[function(require,module,exports){
 (function (process){
 // Copyright Joyent, Inc. and other Node contributors.
 //
@@ -42350,7 +41629,7 @@ var substr = 'ab'.substr(-1) === 'b'
 ;
 
 }).call(this,require('_process'))
-},{"_process":37}],37:[function(require,module,exports){
+},{"_process":40}],40:[function(require,module,exports){
 // shim for using process in browser
 
 var process = module.exports = {};
@@ -42442,14 +41721,14 @@ process.chdir = function (dir) {
 };
 process.umask = function() { return 0; };
 
-},{}],38:[function(require,module,exports){
+},{}],41:[function(require,module,exports){
 module.exports = function isBuffer(arg) {
   return arg && typeof arg === 'object'
     && typeof arg.copy === 'function'
     && typeof arg.fill === 'function'
     && typeof arg.readUInt8 === 'function';
 }
-},{}],39:[function(require,module,exports){
+},{}],42:[function(require,module,exports){
 (function (process,global){
 // Copyright Joyent, Inc. and other Node contributors.
 //
@@ -43039,4 +42318,4 @@ function hasOwnProperty(obj, prop) {
 }
 
 }).call(this,require('_process'),typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./support/isBuffer":38,"_process":37,"inherits":35}]},{},[18]);
+},{"./support/isBuffer":41,"_process":40,"inherits":38}]},{},[18]);

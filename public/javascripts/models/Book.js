@@ -15,6 +15,7 @@ Book = backbone.Model.extend({
         name:'new Book',
         chapters: new Chapters()
     },
+    idAttribute: 'name',
     /**
     * @param {string} name
     * @todo add chapters as array of chapters to fill the chapters collection

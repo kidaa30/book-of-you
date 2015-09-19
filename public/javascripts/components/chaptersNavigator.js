@@ -29,6 +29,7 @@ ko.components.register('chapters-navigator', {
 
 			// subscriptions
 			self.bookWorker.subscriber(subscriptions.book.chapters.crud.create.done, function(data, env) {
+				console.log(self.bookWorker.currentChapterNum());
 				if(data.context) {
 					self.navigateChapters(data.context.toJSON());
 				}

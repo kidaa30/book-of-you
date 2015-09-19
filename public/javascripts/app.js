@@ -32,6 +32,7 @@ require('./components/customLoader.js');
     AppViewModel = function() {
         var self;
         self = this;
+        self.$ = $;
     };
     init = function () {
         var appViewModel;

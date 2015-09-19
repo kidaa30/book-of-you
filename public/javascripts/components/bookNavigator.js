@@ -16,7 +16,6 @@ ko.components.register('book-navigator', {
 
 		self = this;
 		self.bookWorker = require('../observers/Book.js')().retrieve();
-
 		// data declarations
 		self.chapterNavigator = {};
 		self.showMe = ko.observable(false);
@@ -36,7 +35,7 @@ ko.components.register('book-navigator', {
 			return result;
 		});
 		self.subHeading = ko.pureComputed(function() {
-			return 'Chapter ' + bookWorker.retrieve().currentChapter();
+			return 'Chapter ' + self.bookWorker.retrieve().currentChapter();
 		});
 		self.createEnabled = ko.pureComputed(function() {
 			var result;
@@ -60,7 +59,7 @@ ko.components.register('book-navigator', {
 		self.createBook = function(name) {
 			var createSubscription;
 
-			createSubscription = bookWorker.on(subscriptions.book.name.set, function(data, env) {
+			createSubscription = self.bookWorker.subscriber(subscriptions.book.name.set, function(data, env) {
 				var chapterSubscription;
 				self.book(data.context);
 				createSubscription.unsubscribe();
