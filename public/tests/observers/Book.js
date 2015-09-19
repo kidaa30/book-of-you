@@ -35,14 +35,12 @@ describe('Test The Book Observer', function() {
 		worker.should.be.an.Object;
 		worker.should.have.property('delete');
 		worker.should.have.property('addChapter');
-		worker.should.have.property('setCurrentChapter');
 		worker.should.have.property('setName');
 		worker.should.have.property('addVerse');
 		worker.should.have.property('attributes');
 		worker.should.have.property('currentChapter');
 		worker.delete.should.be.a.Function;
 		worker.addChapter.should.be.a.Function;
-		worker.setCurrentChapter.should.be.a.Function;
 		worker.setName.should.be.a.Function;
 		worker.addVerse.should.be.a.Function;
 		worker.attributes.should.be.an.Object;
@@ -80,20 +78,6 @@ describe('Test The Book Observer', function() {
 		});
 		worker.addChapter();
 	});
-	it('test setCurrentChapter', function(done) {
-		var BookObserver, bookObserver, pubSub, subscription, worker;
-		BookObserver = require('../../javascripts/observers/Book');
-		bookObserver = BookObserver();
-		pubSub = bookObserver.create();
-		worker = pubSub.workerFunctions;
-		subscription = worker.subscriber(subscriptions.book.chapters.chapter.set, function(data, env) {
-			data.should.be.instanceOf(Response);
-			data.result.should.be.instanceOf(backbone.Model);
-			data.context.should.be.instanceOf(backbone.Collection);
-			done();
-		});
-		worker.setCurrentChapter(1);
-	});
 
 	it('test setName', function(done) {
 		var BookObserver, bookObserver, pubSub, subscription, worker;
@@ -119,6 +103,7 @@ describe('Test The Book Observer', function() {
 		bookObserver = BookObserver();
 		pubSub = bookObserver.create();
 		worker = pubSub.workerFunctions;
+		console.log(subscriptions.book.chapters.chapter.verses.verse.crud.create.done);
 		subscription = worker.subscriber(subscriptions.book.chapters.chapter.verses.verse.crud.create.done, function(data, env) {
 			data.should.be.instanceOf(Response);
 			data.result.should.be.instanceOf.String;
@@ -133,58 +118,6 @@ describe('Test The Book Observer', function() {
 
 
 /** Integrity Tests **/
-/** integrity -- setCurrentChapter **/
-	it('integrity -- test setCurrentChapter w/ a number that isn\'t in the collection', function(done) {
-		var BookObserver, bookObserver, pubSub, subscription, worker;
-		BookObserver = require('../../javascripts/observers/Book');
-		bookObserver = BookObserver();
-		pubSub = bookObserver.create();
-		worker = pubSub.workerFunctions;
-		subscription = worker.subscriber(subscriptions.book.chapters.chapter.setError, function(data, env) {
-			data.should.be.instanceOf(Response);
-			should(data.result, null);
-			should(data.context, null);
-			data.code.status.should.eql(404);
-			done();
-		});
-
-		worker.setCurrentChapter(13);
-	});
-
-	it('integrity -- test setCurrentChapter w/ a  null value', function(done) {
-		var BookObserver, bookObserver, pubSub, subscription, worker;
-		BookObserver = require('../../javascripts/observers/Book');
-		bookObserver = BookObserver();
-		pubSub = bookObserver.create();
-		worker = pubSub.workerFunctions;
-		subscription = worker.subscriber(subscriptions.book.chapters.chapter.setError, function(data, env) {
-			data.should.be.instanceOf(Response);
-			should(data.result, null);
-			should(data.context, null);
-			data.code.status.should.eql(404);
-			done();
-		});
-
-		worker.setCurrentChapter(null);
-	});
-
-	it('integrity -- test setCurrentChapter w/ a  string value', function(done) {
-		var BookObserver, bookObserver, pubSub, subscription, worker;
-		BookObserver = require('../../javascripts/observers/Book');
-		bookObserver = BookObserver();
-		pubSub = bookObserver.create();
-		worker = pubSub.workerFunctions;
-		subscription = worker.subscriber(subscriptions.book.chapters.chapter.setError, function(data, env) {
-			data.should.be.instanceOf(Response);
-			should(data.result, null);
-			should(data.context, null);
-			data.code.status.should.eql(404);
-			done();
-		});
-
-		worker.setCurrentChapter('test');
-	});
-/** end integrity -- setCurrentChapter
 
 /** integrity -- setName **/
 
@@ -284,11 +217,11 @@ describe('Test The Book Observer', function() {
 
 	it('test addVerse w/ null value', function(done) {
 		var BookObserver, bookObserver, pubSub, subscription, worker;
+
 		BookObserver = require('../../javascripts/observers/Book');
 		bookObserver = BookObserver();
 		pubSub = bookObserver.create();
 		worker = pubSub.workerFunctions;
-		console.log('name?>?>>>', subscriptions.book.chapters.chapter.verses.verse.crud.create.errorNoVerse);
 		subscription = worker.subscriber(subscriptions.book.chapters.chapter.verses.verse.crud.create.errorNoVerse, function(data, env) {
 			data.should.be.instanceOf(Response);
 			should(data.result, null);
@@ -303,6 +236,7 @@ describe('Test The Book Observer', function() {
 
 	it('test addVerse w/ empty string value', function(done) {
 		var BookObserver, bookObserver, pubSub, subscription, worker;
+
 		BookObserver = require('../../javascripts/observers/Book');
 		bookObserver = BookObserver();
 		pubSub = bookObserver.create();
@@ -321,6 +255,7 @@ describe('Test The Book Observer', function() {
 
 	it('test addVerse w/ function', function(done) {
 		var BookObserver, bookObserver, pubSub, subscription, worker;
+
 		BookObserver = require('../../javascripts/observers/Book');
 		bookObserver = BookObserver();
 		pubSub = bookObserver.create();
@@ -339,6 +274,7 @@ describe('Test The Book Observer', function() {
 
 	it('test addVerse w/ function', function(done) {
 		var BookObserver, bookObserver, pubSub, subscription, worker;
+		
 		BookObserver = require('../../javascripts/observers/Book');
 		bookObserver = BookObserver();
 		pubSub = bookObserver.create();

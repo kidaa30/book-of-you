@@ -27,7 +27,10 @@ Worker.prototype = monologue.prototype;
 
 
 Worker.prototype.create = function(name) {
-	var self, book, workerFunctions, workerPropertyObservables;
+	var self, book, workerFunctions, workerPropertyObservables,
+		_currentChapterNum;
+
+	_currentChapterNum = 1;
 
 	self = this;
 	// this the backbone model that contains the name, chapters, verses
@@ -39,7 +42,7 @@ Worker.prototype.create = function(name) {
 */
 	workerPropertyObservables = function() {
 		// assumes model/self since its operating in same context
-		var keys, workerProperties, currentKey;
+		var currentKey, keys, workerProperties;
 		/* pull this info from model attributes
 		*/
 		keys = ['name', 'chapters'];
@@ -82,24 +85,6 @@ Worker.prototype.create = function(name) {
 
 			return newChapter;
 		},
-		setCurrentChapter: function(num) {
-			var chapter, chapters;
-
-			// Check to see if chapter exists also
-			if(!num || !_.isNumber(num)) {
-				return self.emit(subscriptions.book.chapters.chapter.setError, new Response(null, 404, null));
-			}
-
-			chapter = book.get('chapters').findWhere({num: num});
-			if(!chapter) {
-				console.log('error');
-				return self.emit(subscriptions.book.chapters.chapter.setError, new Response(null, 404, null));				
-			}
-
-			chapters = book.get('chapters');
-			workerFunctions.currentChapter(num);
-			self.emit(subscriptions.book.chapters.chapter.set, new Response(chapter, 200, chapters));
-		},
 		/** Set the book's name
 		* @param {string} name
 		*/
@@ -107,8 +92,8 @@ Worker.prototype.create = function(name) {
 			if(!name || !_.isString(name)) {
 				return self.emit(subscriptions.book.name.setError, new Response(null, 500, null));
 			}
+			book.set('name', name, subscriptions.book.name.set);
 
-			book.set('name', name);
 			self.emit(subscriptions.book.name.set, new Response(name, 200, book));
 		},
 		/** Add a verse to currently selected chapter
@@ -123,7 +108,6 @@ Worker.prototype.create = function(name) {
 			}
 
 			verses = chapter.get('verses');
-
 			if(!_.isString(verseText) || verseText === '') {
 				return self.emit(subscriptions.book.chapters.chapter.verses.verse.crud.create.errorNoVerse, new Response(null, 400, null));
 			}
@@ -137,33 +121,29 @@ Worker.prototype.create = function(name) {
 		subscriber: _.bind(self.on, self),
 		// abstraction of monologue for use in view models
 		publisher: _.bind(self.emit, self),
-		/**
-		* hold the current selected chapter... there is tension between this and setCurrentChapter.
-		* @todo research which function (this or setCurrentChapter) is being used in the code more effectively and eliminate the other
-		* @param {number}
-		*/
-		currentChapter: ko.observable(0),
+		currentChapter: ko.pureComputed({
+			read: function() {
+				return _currentChapterNum;
+			},
+			write: function(val) {
+				_currentChapterNum = val;
+				if(!book.get('chapters').get(val)) {
+					self.emit(subscriptions.book.chapters.chapter.setError, new Response(null, 404, null));
+				};
+				self.emit(subscriptions.book.chapters.chapter.set, new Response(val, 200, {}));	
+			}
+		}),
 		/**
 		* @todo - remove from implementation
 		*/
 		currentChapterObject: ko.pureComputed(function() {
 			return book.get('chapters').findWhere({num: workerFunctions.currentChapter()});
-		}),
-		/**
-		* @param {bool}
-		* @todo remove from implementation
-		*/
-		isCreated: ko.observable(false)
+		})
 	};
 	self.workerFunctions = workerFunctions;
-	// emit the change to worker who will propogate the rest
-	self.workerFunctions.currentChapter.subscribe(function(val) {
-		self.workerFunctions.setCurrentChapter(val);
-	});
 	// emit the workerFunctions to the listeners
-	self.emit('create.done', { book: workerFunctions });
+	self.emit(subscriptions.book.crud.create.done, {book: workerFunctions});
 	// change the chapter from 0 to 1
-	self.workerFunctions.setCurrentChapter(1);
 	return self;
 };
 /** used by knockout side to retrieve worker if the create.done event has already fired */

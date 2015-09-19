@@ -5,6 +5,9 @@ subscriptions = {
 		crud: {
 			delete: {
 				done: 'book.crud.delete.done'
+			},
+			create: {
+				done: 'book.crud.create.done'
 			}
 		},
 		name: {
