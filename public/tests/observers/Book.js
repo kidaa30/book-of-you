@@ -123,10 +123,12 @@ describe('Test The Book Observer', function() {
 		bookObserver = BookObserver();
 		pubSub = bookObserver.create();
 		worker = pubSub.workerFunctions;
+		worker.addChapter();
 		subscription = worker.subscriber(subscriptions.book.chapters.chapter.set, function(data, env) {
 			data.should.be.instanceOf(Response);
-			data.result.should.be.instanceOf.Number;
-			data.result.should.eql(2)
+			data.result.should.be.instanceOf.Object;
+			data.result.should.have.property('get');
+			data.result.get('num').should.eql(2)
 			done();
 		});
 
@@ -320,7 +322,7 @@ describe('Test The Book Observer', function() {
 		worker = pubSub.workerFunctions;
 		subscription = worker.subscriber(subscriptions.book.chapters.chapter.setError, function(data, env) {
 			data.should.be.instanceOf(Response);
-			data.result.code.should.eql(404);
+			data.code.status.should.eql(404);
 			done();
 		});
 

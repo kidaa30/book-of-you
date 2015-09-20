@@ -36,43 +36,7 @@ Worker.prototype.create = function(name) {
 	self = this;
 	// this the backbone model that contains the name, chapters, verses
 	bookCollection = new BookCollection();
-	if(bookCollection.models.length === 0) {
-		book = new BookModel(name, null);
-		bookCollection.add(book);
-	} else {
-		book = bookCollection.first();
-	}
-/** iteratively creates computed observables from backbone model attributes
-	* @todo pull keys value from the model. model attributes is pulling back more than name/chapters at present
-	* @todo investigate where this code is actually being used
-*/
-	workerPropertyObservables = function() {
-		// assumes model/self since its operating in same context
-		var currentKey, keys, workerProperties;
-		/* pull this info from model attributes
-		*/
-		keys = ['name', 'chapters'];
-		workerProperties = {};
-		_.each(keys, function(key, keyi) {
-			workerProperties[key] = ko.pureComputed(
-				{
-					read: function() {
-						var result;
-						result = book.get(key);
-						return result;
-					},
-					write: function(val) {
-						var result;
-						// will use to verify validation, etc
-						result = true;
-						model.set(key, val);
-						return result;
-					}
-				}
-			);
-		});
-		return workerProperties;
-	};
+	book = bookCollection.first();
 	/** worker functions create an abstraction layer between model and returned object. this is the object that's given to the knockout side of the app 
 	* @todo workerFunctions may need to be bifurcated because the observables contained herein aren't worker functions
 	*/
@@ -121,7 +85,14 @@ Worker.prototype.create = function(name) {
 			self.emit(subscriptions.book.chapters.chapter.verses.verse.crud.create.done, new Response(verse, 200, verses));
 		},
 		// model.attribute-based computed-s
-		attributes: workerPropertyObservables(),
+		attributes: {
+			chapters: function() {
+				return book.get('chapters');
+			},
+			name: function() {
+				return book.get('name');
+			}
+		},
 		// abstraction of monologue for use in view models
 		subscriber: _.bind(self.on, self),
 		// abstraction of monologue for use in view models
@@ -138,7 +109,6 @@ Worker.prototype.create = function(name) {
 				};
 
 				_currentChapterNum = val;
-				console.log('gd num from pubs', chapter.get('num'));
 				self.emit(subscriptions.book.chapters.chapter.set, new Response(chapter, 200, {}));	
 			}
 		}),

@@ -7,8 +7,9 @@
 1. Get Repo
 2. npm install
 3. bower install
-4. gulp templates bundle (do this whenever you edit the jade/templates OR public/javascripts files -- yeah I need some devops lol)
-5. npm start
+4. gulp templates (do this whenever you edit the jade/templates -- yeah I need some devops lol)
+5. browserify ./public/javascripts/app.js > ./public/javascripts/bundle.js (gulp is not bundling presently, switching to grunt)
+6. npm start
 
 ## To test
 gulp test
